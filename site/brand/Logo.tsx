@@ -1,12 +1,14 @@
-// 站点的字标和圆环标记：页面用 Wordmark 画站名（size 是高度，单位像素），RingMark 是小标记，转起来就是加载动画。
-// 这里用站名排字；有自己的 Logo 时，把 Wordmark 换成你的 SVG（保持同样的参数）。
+// 站点的字标和圆环标记：Wordmark 画站名（size 是高度，单位像素），RingMark 是小标记，转起来就是加载动画。
+// 字标是 site/brand/logo.png 与 logo-dark.png（浅色/深色主题各一张，深色版把深蓝字改成浅色），
+// 两张都通过 site.ts 的 rootIcons 发布在网站根目录。
 import { SITE } from "../site.ts";
 
 export function Wordmark({ size = 24, className = "", title = SITE.name }: { size?: number; className?: string; title?: string }) {
+  const style = { height: size, width: "auto" } as const;
   return (
-    <span className={`inline-flex items-center font-black leading-none tracking-[-0.03em] ${className}`} style={{ fontSize: Math.round(size * 0.92) }} aria-label={title} role="img">
-      <span aria-hidden="true" className="mr-[0.3em] inline-block size-[0.42em] rounded-full bg-accent" />
-      <span aria-hidden="true">{SITE.name}</span>
+    <span className={`inline-flex items-center ${className}`} aria-label={title} role="img">
+      <img src="/logo.png" alt="" aria-hidden="true" className="block dark:hidden" style={style} />
+      <img src="/logo-dark.png" alt="" aria-hidden="true" className="hidden dark:block" style={style} />
     </span>
   );
 }

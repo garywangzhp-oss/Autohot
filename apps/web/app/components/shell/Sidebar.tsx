@@ -42,8 +42,8 @@ export function Sidebar({ changelogVersion }: { changelogVersion: string | null 
   const dot = useChangelogDot(changelogVersion);
   return (
     <aside className="sticky top-0 hidden h-dvh w-[180px] shrink-0 flex-col border-r border-line bg-sidebar px-3 pb-3.5 pt-6 lg:flex">
-      <Link to="/" className="mb-4 flex h-[50px] items-center px-1 text-ink" aria-label={`${SITE.name} 首页`}>
-        <Wordmark size={26} />
+      <Link to="/" className="mb-4 flex h-[52px] items-center px-1 text-ink" aria-label={`${SITE.name} 首页`}>
+        <Wordmark size={34} />
       </Link>
       <nav className="scrollbar-thin -mx-1 flex-1 overflow-y-auto px-1" aria-label="主导航">
         {sidebar().map((section) => (
