@@ -63,7 +63,7 @@ const SIZES = {
  * options evenly across the available width.
  */
 export function PillTabs({
-  items, active, onSelect, layoutId, size = "md", label, fill = false, className = "",
+  items, active, onSelect, layoutId, size = "md", label, fill = false, wrap = false, className = "",
 }: {
   items: TabItem[];
   active: string;
@@ -73,17 +73,19 @@ export function PillTabs({
   size?: keyof typeof SIZES;
   label?: string;
   fill?: boolean;
+  /** Wrap the options onto more rows instead of scrolling sideways (long lists such as the categories). */
+  wrap?: boolean;
   className?: string;
 }) {
   const links = items.some((t) => t.to);
   const Track = links ? "nav" : "div";
   return (
-    <div className={`scrollbar-none max-w-full overflow-x-auto ${fill ? "w-full" : ""} ${className}`}>
+    <div className={`max-w-full ${fill ? "w-full" : ""} ${wrap ? "" : "scrollbar-none overflow-x-auto"} ${className}`}>
       <Track
         data-pill-track=""
         aria-label={label}
         role={links ? undefined : "tablist"}
-        className={`${fill ? "grid w-full" : "inline-flex w-max"} gap-0.5 rounded-full bg-bg-sunk p-0.5 lg:p-[3px] ring-1 ring-inset ring-line-soft dark:bg-bg-muted/60`}
+        className={`${fill ? "grid w-full" : wrap ? "flex flex-wrap" : "inline-flex w-max"} gap-0.5 ${wrap ? "rounded-2xl" : "rounded-full"} bg-bg-sunk p-0.5 lg:p-[3px] ring-1 ring-inset ring-line-soft dark:bg-bg-muted/60`}
         style={fill ? { gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` } : undefined}
       >
         {items.map((t) => {
