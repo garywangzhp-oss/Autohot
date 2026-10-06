@@ -9,6 +9,8 @@ export interface ModelPreset {
   apiKeyEnv: string;
   /** 额外的请求字段，比如短小的结构化任务关掉推理。 */
   extra?: Record<string, unknown>;
+  /** 额外的请求头，比如某些网关要求的 session id。 */
+  headers?: Record<string, string>;
   /** 推理模型先想再答，额外给推理留的输出额度（token），加在每一步自己的额度上。default 用环境变量 LLM_REASONING_TOKENS。 */
   reasoningTokens?: number;
   /** 接口支持 JSON 模式。 */
@@ -46,6 +48,11 @@ export const PRESETS: Record<string, ModelPreset> = {
     service: "dashscope", model: "qwen3.8-flash", baseUrlEnv: "DASHSCOPE_BASE_URL", apiKeyEnv: "DASHSCOPE_API_KEY",
     extra: { enable_thinking: false }, jsonMode: true,
   },
+  // OpenCode Zen 网关上的模型：共用 LLM_BASE_URL / LLM_API_KEY，模型名各不相同。
+  "zen-deepseek-v4.1-flash": { service: "opencode", model: "deepseek-v4.1-flash", baseUrlEnv: "LLM_BASE_URL", apiKeyEnv: "LLM_API_KEY", reasoningTokens: 8000, jsonMode: true },
+  "zen-glm-5.3-flash": { service: "opencode", model: "glm-5.3-flash", baseUrlEnv: "LLM_BASE_URL", apiKeyEnv: "LLM_API_KEY", reasoningTokens: 8000, jsonMode: true },
+  "zen-mimo-v2.6-flash": { service: "opencode", model: "mimo-v2.6-flash", baseUrlEnv: "LLM_BASE_URL", apiKeyEnv: "LLM_API_KEY", reasoningTokens: 8000, jsonMode: true },
+  "zen-qwen3.7-plus": { service: "opencode", model: "qwen3.7-plus", baseUrlEnv: "LLM_BASE_URL", apiKeyEnv: "LLM_API_KEY", reasoningTokens: 8000, jsonMode: true },
   "mimo-v2.6-flash": {
     service: "mimo", model: "mimo-v2.6-flash", baseUrlEnv: "XIAOMI_MIMO_BASE_URL", apiKeyEnv: "XIAOMI_MIMO_API_KEY",
     extra: { thinking: { type: "disabled" } }, jsonMode: true,

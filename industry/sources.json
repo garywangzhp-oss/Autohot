@@ -1,370 +1,72 @@
 {
-  "$comment": "示范信源：首次启动时导入（scripts/seed.ts），已存在的不会被覆盖。之后在后台“信源”里新建、修改和暂停。字段说明见 docs/customize.md。",
+  "$comment": "示范信源：首次启动时导入（scripts/seed.ts），已存在的不会被覆盖。这里是一批覆盖全球的汽车行业公开信源（官方新闻室、行业媒体、区域媒体、赛车与监管机构，feed 均已实测可访问）。其中部分综合性媒体（如伊朗、土耳其的通讯社）会包含非汽车内容，由预筛拦截。之后在后台“信源”里新建、修改和暂停；换成你自己行业要盯的源。字段说明见 docs/customize.md。",
   "sources": [
-    {
-      "id": "rss-openai-news",
-      "name": "OpenAI News",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://openai.com/news/rss.xml",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T1",
-      "owner_entity_id": "openai",
-      "participation_mode": "editorial",
-      "interval_minutes": 120,
-      "tags": [
-        "官方"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-google-deepmind",
-      "name": "Google DeepMind",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://deepmind.google/blog/rss.xml",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T1",
-      "owner_entity_id": "google",
-      "participation_mode": "editorial",
-      "interval_minutes": 120,
-      "tags": [
-        "官方"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-google-research",
-      "name": "Google Research",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://research.google/blog/rss/",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T1",
-      "owner_entity_id": "google",
-      "participation_mode": "editorial",
-      "interval_minutes": 120,
-      "tags": [
-        "官方",
-        "研究"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-hugging-face",
-      "name": "Hugging Face Blog",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://huggingface.co/blog/feed.xml",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T1",
-      "owner_entity_id": "hugging-face",
-      "participation_mode": "editorial",
-      "interval_minutes": 120,
-      "tags": [
-        "官方",
-        "开源"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-microsoft-research",
-      "name": "Microsoft Research",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://www.microsoft.com/en-us/research/feed/",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T1",
-      "owner_entity_id": "microsoft",
-      "participation_mode": "editorial",
-      "interval_minutes": 120,
-      "tags": [
-        "官方",
-        "研究"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-nvidia-blog",
-      "name": "NVIDIA Blog",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://blogs.nvidia.com/feed/",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T1",
-      "owner_entity_id": "nvidia",
-      "participation_mode": "editorial",
-      "interval_minutes": 120,
-      "tags": [
-        "官方"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-aws-ml",
-      "name": "AWS Machine Learning Blog",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://aws.amazon.com/blogs/machine-learning/feed/",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T1",
-      "owner_entity_id": null,
-      "participation_mode": "editorial",
-      "interval_minutes": 120,
-      "tags": [
-        "官方",
-        "教程"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-github-ai",
-      "name": "GitHub Blog · AI & ML",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://github.blog/ai-and-ml/feed/",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T1",
-      "owner_entity_id": null,
-      "participation_mode": "editorial",
-      "interval_minutes": 120,
-      "tags": [
-        "官方"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-mistral",
-      "name": "Mistral AI",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://mistral.ai/news/rss",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T1",
-      "owner_entity_id": null,
-      "participation_mode": "editorial",
-      "interval_minutes": 120,
-      "tags": [
-        "官方"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-bair",
-      "name": "Berkeley AI Research",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://bair.berkeley.edu/blog/feed.xml",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T1",
-      "owner_entity_id": null,
-      "participation_mode": "editorial",
-      "interval_minutes": 180,
-      "tags": [
-        "研究"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-the-verge-ai",
-      "name": "The Verge · AI",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T2",
-      "owner_entity_id": null,
-      "participation_mode": "editorial",
-      "interval_minutes": 60,
-      "tags": [
-        "媒体"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-techcrunch-ai",
-      "name": "TechCrunch · AI",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://techcrunch.com/category/artificial-intelligence/feed/",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T2",
-      "owner_entity_id": null,
-      "participation_mode": "editorial",
-      "interval_minutes": 60,
-      "tags": [
-        "媒体"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-ars-technica-ai",
-      "name": "Ars Technica · AI",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://arstechnica.com/ai/feed/",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T2",
-      "owner_entity_id": null,
-      "participation_mode": "editorial",
-      "interval_minutes": 60,
-      "tags": [
-        "媒体"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-mit-tech-review-ai",
-      "name": "MIT Technology Review · AI",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://www.technologyreview.com/topic/artificial-intelligence/feed",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T2",
-      "owner_entity_id": null,
-      "participation_mode": "editorial",
-      "interval_minutes": 120,
-      "tags": [
-        "媒体"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-the-decoder",
-      "name": "The Decoder",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://the-decoder.com/feed/",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T2",
-      "owner_entity_id": null,
-      "participation_mode": "editorial",
-      "interval_minutes": 60,
-      "tags": [
-        "媒体"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-simon-willison",
-      "name": "Simon Willison",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://simonwillison.net/atom/everything/",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T2",
-      "owner_entity_id": null,
-      "participation_mode": "editorial",
-      "interval_minutes": 120,
-      "tags": [
-        "个人"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-import-ai",
-      "name": "Import AI",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://importai.substack.com/feed",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T2",
-      "owner_entity_id": null,
-      "participation_mode": "editorial",
-      "interval_minutes": 180,
-      "tags": [
-        "个人",
-        "周刊"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-latent-space",
-      "name": "Latent Space",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://www.latent.space/feed",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T2",
-      "owner_entity_id": null,
-      "participation_mode": "editorial",
-      "interval_minutes": 180,
-      "tags": [
-        "个人"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    }
+    { "id": "rss-toyota-newsroom", "name": "Toyota Newsroom", "kind": "rss", "config": { "feedUrl": "https://www.toyotanewsroom.com/rss", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T1", "owner_entity_id": "toyota", "participation_mode": "editorial", "interval_minutes": 120, "tags": ["官方"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-bmw-pressclub", "name": "BMW Group PressClub", "kind": "rss", "config": { "feedUrl": "https://www.press.bmwgroup.com/global/rss", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T1", "owner_entity_id": "bmw", "participation_mode": "editorial", "interval_minutes": 120, "tags": ["官方"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-hyundai-news", "name": "Hyundai News", "kind": "rss", "config": { "feedUrl": "https://www.hyundainews.com/rss", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T1", "owner_entity_id": "hyundai", "participation_mode": "editorial", "interval_minutes": 120, "tags": ["官方"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-nissan-news", "name": "Nissan News", "kind": "rss", "config": { "feedUrl": "https://global.nissannews.com/en/rss", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T1", "owner_entity_id": "nissan", "participation_mode": "editorial", "interval_minutes": 120, "tags": ["官方"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-fia", "name": "FIA", "kind": "rss", "config": { "feedUrl": "https://www.fia.com/rss.xml", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T1", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 180, "tags": ["官方", "赛车"], "site_fulltext": false, "syndicate_fulltext": false },
+
+    { "id": "rss-electrek", "name": "Electrek", "kind": "rss", "config": { "feedUrl": "https://electrek.co/feed/", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 60, "tags": ["媒体", "电动化"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-insideevs", "name": "InsideEVs", "kind": "rss", "config": { "feedUrl": "https://insideevs.com/rss/articles/all/", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 60, "tags": ["媒体", "电动化"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-cleantechnica", "name": "CleanTechnica", "kind": "rss", "config": { "feedUrl": "https://cleantechnica.com/feed/", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 60, "tags": ["媒体", "电动化"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-electrive", "name": "electrive", "kind": "rss", "config": { "feedUrl": "https://www.electrive.com/feed/", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 60, "tags": ["媒体", "电动化"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-charged-evs", "name": "Charged EVs", "kind": "rss", "config": { "feedUrl": "https://chargedevs.com/feed/", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 90, "tags": ["媒体", "电动化"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-automotive-world", "name": "Automotive World", "kind": "rss", "config": { "feedUrl": "https://www.automotiveworld.com/feed/", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 60, "tags": ["媒体", "行业"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-just-auto", "name": "Just Auto", "kind": "rss", "config": { "feedUrl": "https://www.just-auto.com/feed/", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 60, "tags": ["媒体", "行业"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-wardsauto", "name": "WardsAuto", "kind": "rss", "config": { "feedUrl": "https://www.wardsauto.com/rss", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 90, "tags": ["媒体", "行业"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-best-magazine", "name": "BEST Magazine", "kind": "rss", "config": { "feedUrl": "https://www.bestmag.co.uk/rss", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 120, "tags": ["媒体", "电池"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-icct", "name": "ICCT", "kind": "rss", "config": { "feedUrl": "https://theicct.org/feed", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 180, "tags": ["机构", "政策"], "site_fulltext": false, "syndicate_fulltext": false },
+
+    { "id": "rss-the-verge-transportation", "name": "The Verge · Transportation", "kind": "rss", "config": { "feedUrl": "https://www.theverge.com/rss/transportation/index.xml", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 60, "tags": ["媒体"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-techcrunch-transportation", "name": "TechCrunch · Transportation", "kind": "rss", "config": { "feedUrl": "https://techcrunch.com/category/transportation/feed/", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 60, "tags": ["媒体"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-ars-technica-cars", "name": "Ars Technica · Cars", "kind": "rss", "config": { "feedUrl": "https://feeds.arstechnica.com/arstechnica/cars", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 90, "tags": ["媒体"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-motor1", "name": "Motor1", "kind": "rss", "config": { "feedUrl": "https://www.motor1.com/rss/news/all/", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 60, "tags": ["媒体", "评测"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-car-and-driver", "name": "Car and Driver", "kind": "rss", "config": { "feedUrl": "https://www.caranddriver.com/rss/all.xml/", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 90, "tags": ["媒体", "评测"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-carscoops", "name": "Carscoops", "kind": "rss", "config": { "feedUrl": "https://www.carscoops.com/feed/", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 60, "tags": ["媒体"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-the-drive", "name": "The Drive", "kind": "rss", "config": { "feedUrl": "https://www.thedrive.com/feed", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 60, "tags": ["媒体"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-teslarati", "name": "Teslarati", "kind": "rss", "config": { "feedUrl": "https://www.teslarati.com/feed/", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 90, "tags": ["媒体"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-jalopnik", "name": "Jalopnik", "kind": "rss", "config": { "feedUrl": "https://jalopnik.com/rss", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 90, "tags": ["媒体"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-motorbiscuit", "name": "MotorBiscuit", "kind": "rss", "config": { "feedUrl": "https://www.motorbiscuit.com/feed", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 120, "tags": ["媒体"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-driving-ca", "name": "Driving.ca", "kind": "rss", "config": { "feedUrl": "https://www.driving.ca/feed", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 90, "tags": ["媒体"], "site_fulltext": false, "syndicate_fulltext": false },
+
+    { "id": "rss-autocar", "name": "Autocar", "kind": "rss", "config": { "feedUrl": "https://www.autocar.co.uk/rss", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 60, "tags": ["媒体", "评测"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-auto-express", "name": "Auto Express", "kind": "rss", "config": { "feedUrl": "https://www.autoexpress.co.uk/rss", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 60, "tags": ["媒体", "评测"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-autogazette", "name": "AutoGazette", "kind": "rss", "config": { "feedUrl": "https://www.autogazette.de/rss", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 90, "tags": ["媒体"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-auto-infos", "name": "Auto Infos", "kind": "rss", "config": { "feedUrl": "https://www.auto-infos.fr/rss", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 120, "tags": ["媒体", "行业"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-frandroid", "name": "Frandroid", "kind": "rss", "config": { "feedUrl": "https://www.frandroid.com/feed", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 90, "tags": ["媒体", "电动化"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-numerama", "name": "Numerama", "kind": "rss", "config": { "feedUrl": "https://www.numerama.com/feed", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 120, "tags": ["媒体"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-autofacil", "name": "Autofácil", "kind": "rss", "config": { "feedUrl": "https://www.autofacil.es/feed/", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 90, "tags": ["媒体"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-autoblog-nl", "name": "Autoblog.nl", "kind": "rss", "config": { "feedUrl": "https://www.autoblog.nl/feed", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 90, "tags": ["媒体"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-autoweek-nl", "name": "Autoweek.nl", "kind": "rss", "config": { "feedUrl": "https://www.autoweek.nl/rss", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 90, "tags": ["媒体"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-autozine-nl", "name": "Autozine", "kind": "rss", "config": { "feedUrl": "https://www.autozine.nl/rss", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 120, "tags": ["媒体", "评测"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-auto-cz", "name": "Auto.cz", "kind": "rss", "config": { "feedUrl": "https://www.auto.cz/rss", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 90, "tags": ["媒体"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-kolesa-ru", "name": "Kolesa.ru", "kind": "rss", "config": { "feedUrl": "https://www.kolesa.ru/rss", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 90, "tags": ["媒体"], "site_fulltext": false, "syndicate_fulltext": false },
+
+    { "id": "rss-best-car-web", "name": "Best Car Web（日本）", "kind": "rss", "config": { "feedUrl": "https://bestcarweb.jp/feed", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 90, "tags": ["媒体", "日本"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-clicccar", "name": "clicccar（日本）", "kind": "rss", "config": { "feedUrl": "https://clicccar.com/feed", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 90, "tags": ["媒体", "日本"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-kuruma-news", "name": "Kuruma News（日本）", "kind": "rss", "config": { "feedUrl": "https://kuruma-news.jp/feed", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 90, "tags": ["媒体", "日本"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-motor-fan", "name": "Motor Fan（日本）", "kind": "rss", "config": { "feedUrl": "https://motor-fan.jp/feed", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 120, "tags": ["媒体", "日本"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-rushlane", "name": "RushLane（印度）", "kind": "rss", "config": { "feedUrl": "https://www.rushlane.com/feed", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 90, "tags": ["媒体", "印度"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-gaadiwaadi", "name": "Gaadiwaadi（印度）", "kind": "rss", "config": { "feedUrl": "https://www.gaadiwaadi.com/feed", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 90, "tags": ["媒体", "印度"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-motorbeam", "name": "MotorBeam（印度）", "kind": "rss", "config": { "feedUrl": "https://www.motorbeam.com/feed", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 90, "tags": ["媒体", "印度"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-paultan", "name": "Paul Tan（马来西亚）", "kind": "rss", "config": { "feedUrl": "https://paultan.org/feed", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 90, "tags": ["媒体", "东南亚"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-36kr", "name": "36氪（中国）", "kind": "rss", "config": { "feedUrl": "https://www.36kr.com/feed", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 60, "tags": ["媒体", "中国"], "site_fulltext": false, "syndicate_fulltext": false },
+
+    { "id": "rss-donya-eqtesad", "name": "Donya-e-Eqtesad（伊朗）", "kind": "rss", "config": { "feedUrl": "https://www.donya-e-eqtesad.com/feed", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 120, "tags": ["媒体", "中东", "伊朗"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-isna", "name": "ISNA（伊朗）", "kind": "rss", "config": { "feedUrl": "https://www.isna.ir/rss", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 120, "tags": ["媒体", "中东", "伊朗"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-mehr-news", "name": "Mehr News（伊朗）", "kind": "rss", "config": { "feedUrl": "https://www.mehrnews.com/rss", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 120, "tags": ["媒体", "中东", "伊朗"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-irna-en", "name": "IRNA（伊朗）", "kind": "rss", "config": { "feedUrl": "https://en.irna.ir/rss", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 120, "tags": ["媒体", "中东", "伊朗"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-arabgt", "name": "ArabGT（阿拉伯）", "kind": "rss", "config": { "feedUrl": "https://www.arabgt.com/feed", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 90, "tags": ["媒体", "中东"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-assayyarat", "name": "Assayyarat（阿拉伯）", "kind": "rss", "config": { "feedUrl": "https://www.assayyarat.com/rss", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 120, "tags": ["媒体", "中东"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-almuraba", "name": "Al Muraba（阿拉伯）", "kind": "rss", "config": { "feedUrl": "https://www.almuraba.net/rss", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 120, "tags": ["媒体", "中东"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-autoshow-tr", "name": "Autoshow（土耳其）", "kind": "rss", "config": { "feedUrl": "https://www.autoshow.com.tr/rss", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 90, "tags": ["媒体", "土耳其"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-log-tr", "name": "Log.com.tr（土耳其）", "kind": "rss", "config": { "feedUrl": "https://www.log.com.tr/feed", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 90, "tags": ["媒体", "土耳其"], "site_fulltext": false, "syndicate_fulltext": false },
+
+    { "id": "rss-motorsport", "name": "Motorsport.com", "kind": "rss", "config": { "feedUrl": "https://www.motorsport.com/rss/all/news/", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 60, "tags": ["媒体", "赛车"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-the-race", "name": "The Race", "kind": "rss", "config": { "feedUrl": "https://the-race.com/feed/", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 60, "tags": ["媒体", "赛车"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-crash-net", "name": "Crash.net", "kind": "rss", "config": { "feedUrl": "https://www.crash.net/rss", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 60, "tags": ["媒体", "赛车"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-formula1", "name": "Formula 1", "kind": "rss", "config": { "feedUrl": "https://www.formula1.com/en/latest/all.xml", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 90, "tags": ["媒体", "赛车"], "site_fulltext": false, "syndicate_fulltext": false },
+    { "id": "rss-motorsport-week", "name": "Motorsport Week", "kind": "rss", "config": { "feedUrl": "https://www.motorsportweek.com/feed", "_aihot": { "initialBackfillLimit": 6 } }, "tier": "T2", "owner_entity_id": null, "participation_mode": "editorial", "interval_minutes": 90, "tags": ["媒体", "赛车"], "site_fulltext": false, "syndicate_fulltext": false }
   ]
 }

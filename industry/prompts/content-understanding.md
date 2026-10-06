@@ -10,36 +10,36 @@
 
 `itemType` 必须七选一：
 
-- `model_release`：新模型或大版本更新
-- `product_launch`：新产品、工具或重大功能更新
-- `tool_or_prompt`：可直接复用的方法、Prompt、Skill 或技巧
-- `research_paper`：论文、研究或技术报告
-- `industry_event`：融资、收购、监管、诉讼、商业动作或人事
+- `new_model`：新车型、改款换代、概念车首发或正式上市
+- `product_update`：既有车型的功能、配置、价格调整，或 OTA 更新
+- `technology`：三电、智驾、平台、材料等技术本身的进展
+- `industry_event`：产销、财报、融资、并购、人事、合作、召回
+- `policy_regulation`：法规、标准、补贴、关税、准入、监管
+- `review_test`：实测、对比评测、拆解、碰撞测试
 - `opinion_analysis`：观点、行业判断、复盘或长访谈
-- `tutorial_explainer`：教程、科普、解读或评测
 
-优先级：发了模型选 model_release；发了工具选 product_launch；发了 Prompt 或方法选 tool_or_prompt；论文优先 research_paper；评测选 tutorial_explainer。
+优先级：发布了新车型选 new_model；既有车型更新选 product_update；技术方案进展选 technology；政策法规选 policy_regulation；实测与评测选 review_test。
 
-输出前检查 `itemType` 与第一个分类标签是否自洽：`model_release` 对应“模型发布”，`product_launch` 对应“产品更新”，`research_paper` 对应“论文/研究”，`industry_event` 对应“行业动态”或“政策/监管”，`opinion_analysis` 对应“大佬观点”或“现象/趋势”，`tutorial_explainer` 对应“教程/实践”或“评测/基准”。如果二者冲突，按当前材料的核心事件修正后再输出。
+输出前检查 `itemType` 与第一个分类标签是否自洽：`new_model` 对应“新车发布”；`product_update` 与 `technology` 对应“技术/软件”或“电动化/三电”；`industry_event` 对应“企业/高管”“行业趋势”“销量/市场”“财务/资本”“制造/工厂”“供应链”或“赛车运动”；`policy_regulation` 对应“政策法规”；`review_test` 对应“评测/实测”；`opinion_analysis` 对应“观点/分析”。如果二者冲突，按当前材料的核心事件修正后再输出。
 
 ## 作者角色
 
 `authorRole` 必须三选一，回答“这条内容的信息源头是不是作者本人”：
 
-- `principal`：作者本人或所属组织就是当事方，例如官方账号发布自家产品、员工宣布或说明自家产品。
+- `principal`：作者本人或所属组织就是当事方，例如车企官方账号发布自家新车、员工宣布或说明自家车型。
 - `observer`：作者以第一手身份独立实测、亲历、原创分析或产出原创方法。
 - `relayer`：作者在转发、引用、翻译或归纳他人信息。主体信息来自引用块时选 relayer。
 
 ## 标签
 
-`tags` 输出 1–6 个字符串。第一个必须从以下分类标签中选一个：模型发布、产品更新、开源/仓库、论文/研究、教程/实践、大佬观点、评测/基准、安全/对齐、现象/趋势、行业动态、政策/监管、非AI/通用工具、其他。
+`tags` 输出 1–6 个字符串。第一个必须从以下分类标签中选一个：新车发布、销量/市场、电动化/三电、智能驾驶、技术/软件、供应链、制造/工厂、企业/高管、行业趋势、政策法规、财务/资本、能源/充电、出行/商业模式、赛车运动、评测/实测、观点/分析、其他。
 
 其后可选 0–5 个适用标签，并且只能来自以下两个白名单：
 
-- 主题：Agent、编码、推理、多模态、语音、视频、图像生成、RAG、端侧、数据/训练、搜索、部署/工程、开源生态、具身智能、MCP/工具调用
-- 实体：OpenAI、Anthropic、DeepSeek、DeepMind、Google、Meta、Microsoft、xAI、Hugging Face、GitHub、arXiv
+- 主题：新能源、纯电、插混/增程、电池、充电/补能、智能座舱、车机/OTA、芯片、平台/架构、安全、性能、设计、氢燃料、商用车、产能、出口/全球化、Robotaxi、经销商
+- 实体：Tesla、Toyota、Volkswagen、GM、Ford、Stellantis、Hyundai、Kia、BYD、Mercedes-Benz、BMW、Honda、Nissan、NIO、XPeng、Li Auto、Xiaomi、CATL、Bosch、Waymo、Mobileye、Volvo、Renault
 
-正文中即使明确出现了 NVIDIA、Apple、阿里等其他实体，也不要把它们放进 `tags`。不要创造白名单之外的标签。没有适用的主题或实体时，只返回第一个分类标签；例如学校限制 AI 使用的监管新闻，不需要强行归到“编码”或“推理”。
+正文中即使明确出现了 Rivian、Lucid、Geely、Lynk & Co 等其他实体，也不要把它们放进 `tags`。不要创造白名单之外的标签。没有适用的主题或实体时，只返回第一个分类标签；例如一条纯政策新闻，不需要强行归到“电池”或“智能驾驶”。
 
 ## 候选阅读价值
 
@@ -51,12 +51,12 @@
 
 ## 中文标题和摘要
 
-`titleZh` 必须是自洽的中文标题，包含事件主体以及动作或结果。保留必要的模型名、产品名、版本号、机构名和关键数字，不写“最新动态”“引发关注”等空话。原标题已经是中文时也要保证脱离来源名后仍能独立理解。
+`titleZh` 必须是自洽的中文标题，包含事件主体以及动作或结果。保留必要的品牌名、车型名、平台名、年份与关键数字，不写“最新动态”“引发关注”等空话。原标题已经是中文时也要保证脱离来源名后仍能独立理解。
 
-`summaryZh` 必须忠实使用当前材料。短 X 推文完整翻译作者自己的主推文；长推文或文章先写核心事实，再写一层关键细节或影响。保留关键数字、版本、机构、模型和 URL；引用内容只作上下文，不冒充主推作者自己的话。
+`summaryZh` 必须忠实使用当前材料。短 X 推文完整翻译作者自己的主推文；长推文或文章先写核心事实，再写一层关键细节或影响。保留关键数字、续航、功率、价格、车型名和 URL；引用内容只作上下文，不冒充主推作者自己的话。
 
 图片只能补充清晰可见、与正文直接相关的事实。忽略头像、品牌图、装饰图、模糊内容和与正文重复的信息。不得仅凭图片猜测人物身份、地点、时间、因果、性能或产品能力；图文冲突时不得擅自裁决。
 
 只返回合法 JSON，不要 Markdown，不要解释。顶层必须且只能包含以下六个字段：
 
-{"itemType":"product_launch","authorRole":"principal","tags":["产品更新","Agent"],"editorialJudgment":"原文给出了能力变化和开放入口，读者可以据此判断它会怎样改变现有工作流。","titleZh":"某产品发布智能体功能","summaryZh":"某产品发布新的智能体功能，给出了开放入口和主要能力变化。"}
+{"itemType":"new_model","authorRole":"principal","tags":["新车发布","纯电"],"editorialJudgment":"原文给出了新车的续航、价格与交付时间，读者可以据此判断它对自己买车决策的影响。","titleZh":"某品牌发布一款纯电 SUV","summaryZh":"某品牌发布一款纯电 SUV，公布了续航、售价与交付时间，并开始接受预订。"}

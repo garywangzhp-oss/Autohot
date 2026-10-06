@@ -1,8 +1,18 @@
 // 精选的门槛。评分标准本身写在 prompts/selection-score.md；这里只决定“多少分算入选”。
 // 每篇资料由评分模型独立打两次分（0–100），两次之和 ≥ 2 × 门槛、并确认不是精选里已有新闻的重复报道才进精选
 // （见 docs/selection.md），卡片上显示两次的平均分。
-// 门槛按信源分级区分：官方一手信源的门槛低一些，媒体和个人的高一些。改了门槛或评分提示词，
-// 用 scripts/eval-selection.ts 在你自己标注的样本上重跑一遍，再决定上线（见 docs/selection.md）。
+// 门槛按信源分级区分：官方一手信源的门槛低一些，媒体和个人的高一些。
+//
+// 这批数字在 165 条全球汽车行业金标样本上校准（.data/gold.jsonl，人工标注 94 应选 / 71 不应选；
+// 报告在 .data/eval/，可后台 SelectBench 回看）。同一个模型在不同内容上的分数尺度不一样，所以门槛跟模型绑定：
+// byModel 里按“模型 id”写各模型的门槛，没列出的模型用上面的 thresholds。
+// 取法是：在同一批样本上扫描门槛，取“查准率首次 ≥ 0.90”的那一档（精选宁精勿滥），再按 T1 = T2−5、T1_5 = T2−3 给官方源放低门槛。
+//   模型                      T1 / T1_5 / T2   该档查准/查全（同一批 120 条）
+//   deepseek-v4.1-flash        21 / 23 / 26     0.92 / 0.78   ← 当前默认
+//   glm-5.3-flash              25 / 27 / 30     0.92 / 0.77
+//   mimo-v2.6-flash            27 / 29 / 32     0.91 / 0.73
+//   qwen3.7-plus               13 / 15 / 18     0.90 / 0.75   （分数整体偏低，门槛要低很多）
+// 换了评分模型、改了评分提示词，或拿到你自己标注的样本后，用 scripts/eval-selection.ts 重跑一遍再定。
 
 export const SELECTION = {
   /**
@@ -10,10 +20,17 @@ export const SELECTION = {
    *   T1 官方一手（官网、官方博客、机构）· T1_5 官方账号、准官方创作者 · T2 媒体与个人
    * 分级 EXCLUDE_MP 以及这里没有列出的分级，不参与精选评分（只进“全部动态”）。
    */
-  thresholds: { T1: 60, T1_5: 65, T2: 76 } as Record<string, number>,
+  thresholds: { T1: 21, T1_5: 23, T2: 26 } as Record<string, number>,
+  /** 按评分模型（模型 id）覆盖门槛；上面 thresholds 是没匹配到时的兜底。 */
+  byModel: {
+    "deepseek-v4.1-flash": { T1: 21, T1_5: 23, T2: 26 },
+    "glm-5.3-flash": { T1: 25, T1_5: 27, T2: 30 },
+    "mimo-v2.6-flash": { T1: 27, T1_5: 29, T2: 32 },
+    "qwen3.7-plus": { T1: 13, T1_5: 15, T2: 18 },
+  } as Record<string, Record<string, number>>,
   /**
    * 没入选、但平均分高于这个数的资料，也用精选的写法（内容理解：标题、摘要、推荐理由）来写，
-   * 其余用更便宜的“标题摘要翻译”。
+   * 其余用更便宜的“标题摘要翻译”。比最低一档门槛再低一点，随门槛一起走。
    */
-  understandFloor: 50,
+  understandFloor: 16,
 } as const;

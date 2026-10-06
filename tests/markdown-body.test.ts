@@ -37,11 +37,11 @@ second()
   assert.doesNotMatch(html, /<script|onerror|javascript:/);
 });
 
-test("OpenAI Reader pages drop responsive navigation and recommendations, retaining captions and notes", () => {
+test("Tesla Reader pages drop responsive navigation and recommendations, retaining captions and notes", () => {
   const url = "https://openai.com/index/example/";
   const input = `* [Products](https://openai.com/products/)
 
-Introducing Example | OpenAI
+Introducing Example | Tesla
 # Example
 
 Capabilities
@@ -59,7 +59,7 @@ _In_[_Benchmark⁠_⁠(opens in a new window)](https://example.org/benchmark)_, 
 
 ## Author
 
-OpenAI
+Tesla
 
 _Evaluations may differ in production._
 

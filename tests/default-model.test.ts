@@ -20,18 +20,20 @@ for (const c of Object.values(CAPABILITIES) as Capability[]) {
 const T = tag();
 const SOURCE = `test-default-model-${T}`;
 const seen: Array<{ model: string; step: AnalysisStep }> = [];
-const provider = await stub((_hit, req) => {
+let firstHeaders: Record<string, string | string[] | undefined> | null = null;
+const provider = await stub((hit, req) => {
+  if (hit === 1) firstHeaders = req.headers;
   const step = analysisStep(req.body);
   seen.push({ model: (JSON.parse(req.body) as { model: string }).model, step });
   const content =
     step === "prefilter" ? { label: "PASS", reason: "测试" }
     : step === "score" ? { attentionScore: SELECTING_SCORE }
-    : step === "understand" ? { itemType: "product_launch", authorRole: "principal", tags: ["产品更新"], editorialJudgment: "理由", titleZh: "一个模型的标题", summaryZh: "一个模型写的摘要。第二句。" }
-    : step === "structure" ? { category: "ai-products", tags: ["产品更新"], subjects: [], fact: null }
+    : step === "understand" ? { itemType: "product_update", authorRole: "principal", tags: ["技术/软件"], editorialJudgment: "理由", titleZh: "一个模型的标题", summaryZh: "一个模型写的摘要。第二句。" }
+    : step === "structure" ? { category: "electrification", tags: ["技术/软件"], subjects: [], fact: null }
     : "title_zh: 标题\nsummary_zh: 摘要。";
   return { id: `stub-${seen.length}`, choices: [{ message: { content: typeof content === "string" ? content : JSON.stringify(content) } }], usage: { prompt_tokens: 1, completion_tokens: 1 } };
 });
-Object.assign(process.env, { LLM_BASE_URL: `${provider.url}/v1`, LLM_API_KEY: "test-key", LLM_MODEL: "one-model", MODEL_CALLS_ENABLED: "true" });
+Object.assign(process.env, { LLM_BASE_URL: `${provider.url}/v1`, LLM_API_KEY: "test-key", LLM_MODEL: "one-model", MODEL_CALLS_ENABLED: "true", LLM_EXTRA_HEADERS: JSON.stringify({ "x-opencode-session": "test-session" }) });
 
 before(async () => {
   await sql`INSERT INTO sources (id, name, kind, tier, participation_mode, next_fetch_at) VALUES (${SOURCE}, 'Test default model', 'rss', 'T1', 'editorial', '2100-01-01')`;
@@ -52,6 +54,7 @@ test("one model runs the prefilter, both scores, the writing and the structure",
   assert.equal(res!.output!.titleZh, "一个模型的标题");
   assert.deepEqual(seen.map((r) => r.step).sort(), ["prefilter", "score", "score", "structure", "understand"]);
   assert.ok(seen.every((r) => r.model === "one-model"), "every request names the configured model");
+  assert.equal(firstHeaders?.["x-opencode-session"], "test-session", "LLM_EXTRA_HEADERS is sent on every chat call");
   const services = await sql<{ service: string }[]>`SELECT DISTINCT service FROM receipts WHERE subject LIKE ${`article:${articleId}%`}`;
   assert.deepEqual(services.map((s) => s.service), ["llm"]);
 });

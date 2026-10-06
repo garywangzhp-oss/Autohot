@@ -1,45 +1,36 @@
+【汽车行业翻译规则 — 本平台 100% 是全球汽车行业内容，严格遵守】
 
-【AI 领域翻译规则 — 本平台 100% 是 AI/ML/LLM 行业内容，严格遵守】
-
-1. 歧义默认值：以下词在中文有非 AI 歧义，**一律按 AI 含义翻译**：
-   - LLM = 大语言模型（绝不译"法学硕士"/"Master of Laws"）
-   - Token / tokens = 模型 token（保留英文；绝不译"代币"/"令牌"）
-   - Transformer = Transformer 架构（保留英文；不译"变压器"）
-   - Diffusion = 扩散模型（AI 生成，不是物理扩散）
-   - Agent / Agentic = AI 智能体 / 智能体的（不译"代理人"/"中介"）
-   - Alignment = 对齐（AI 安全语境）
-   - Inference = 推理（模型生成）
-   - Reasoning = 推理（注意：与 inference 都译"推理"，必要时用"链式推理"区分 CoT；reasoning model 指 o1/o3/R1 这类思考型模型）
-   - Embedding = 嵌入向量（也可保留英文）
-   - Distillation = 知识蒸馏
-   - Hallucination = 模型幻觉
-   - Fine-tune / Fine-tuning = 微调
-   - Pretrain / Pretraining = 预训练
-   - Context window = 上下文窗口
-   - Prompt = 提示词
-   - Skill / Skills = 技能（Claude 等 Agent 框架的能力包，不译"特长"）
+1. 歧义默认值：以下词在中文有非汽车歧义，**一律按汽车含义翻译**：
+   - Range / 续航 = 纯电或插混的续航里程（不译"射程"）
+   - Charge / Charging = 充电 / 补能（不译"收费"）
+   - Recall = 召回（汽车缺陷召回，不译"回忆"）
+   - Model = 车型（不是"模型"；文中指某个具体车款时译"车型/车款"）
+   - Platform = 平台（整车平台，不译"站台"）
+   - Trim = 配置 / 版本（车型配置等级，不译"修剪"）
+   - Horsepower / hp = 马力（保留数字与单位）
+   - Torque = 扭矩
+   - Range anxiety = 续航焦虑
+   - ADAS = 高级驾驶辅助系统（也可保留英文 ADAS）
+   - OTA = 远程升级 / OTA（保留英文更常见）
+   - Curb weight = 整备质量
+   - Payload / Towing = 载重 / 牵引能力
 
 2. 以下专有名词**一律保留英文原文**，不翻译不加中文括注：
-   - AI 公司：OpenAI / Anthropic / Google DeepMind / xAI / Meta AI / Mistral / DeepSeek / Cohere / HuggingFace（HF）/ Runway / ElevenLabs / Suno / Pika / Midjourney / Perplexity
-   - 模型族（举例 + 通用规则）：GPT / Claude / Gemini / Llama / Qwen / Grok / o 系列 / DeepSeek / Mistral / Mixtral / Phi / Sora / Veo / Imagen
-     **规则**：任何大模型族名、产品代号一律保留英文
-   - 模型版本号（举例 + 通用规则）：GPT-5 / Claude 4.7 / Claude Sonnet 4.6 / Llama 4 / Gemini 3 / o3 / o4 / DeepSeek-V4 / Qwen3.7
-     **规则**：版本号一字不改（包括字母数字后缀如 4o / 4.7 / 405B / V4 / R1），绝不"翻译性扩写"（不要把 "405B" 译成 "4050 亿"，不要把 "V4" 译成 "第 4 代"）
-   - 技术缩写（举例 + 通用规则）：LLM / RAG / RLHF / DPO / LoRA / QLoRA / PEFT / MoE / CoT / ReAct / KV cache / SOTA / AGI / MCP / ADK / NPU / GPU / TPU
-     **规则**：任何 2-5 字母的全大写缩写，默认按 AI/ML 含义保留英文
-   - 评测基准（举例 + 通用规则）：MMLU / GPQA / HumanEval / SWE-bench / SWE-bench Verified / AIME / HLE / ARC-AGI / ARC-AGI 2 / MT-Bench / Chatbot Arena / Aider Polyglot / LiveCodeBench
-     **规则**：以 -bench / -eval 结尾或全大写的评测名一律保留英文
-   - AI 工具/产品：Cursor / Copilot / Codex / Aider / Devin / Cline / Claude Code / Windsurf / Zed / v0 / Bolt / Lovable / Replit Agent
-   - Agent 框架：LangChain / LangGraph / LlamaIndex / CrewAI / AutoGen / Pydantic AI / Vercel AI SDK / DSPy
-   - 推理/部署：Ollama / vLLM / SGLang / TensorRT / Triton / CUDA / ROCm
-   - 通用技术：API / SDK / CLI / IDE / SaaS / CDN / SSO / OAuth / JWT / WebSocket / SSE / gRPC
+   - 车企与品牌：Tesla / Toyota / Volkswagen / BMW / Mercedes-Benz / Audi / Porsche / GM / Chevrolet / Ford / Stellantis / Peugeot / Renault / Hyundai / Kia / Honda / Nissan / Subaru / Mazda / Volvo / Polestar / Rivian / Lucid / BYD / NIO / XPeng / Li Auto / Zeekr / Geely / Tata / Land Rover / Jaguar
+   - 车型与代号（举例 + 通用规则）：Model 3 / Model Y / Cybertruck / RAV4 / Corolla / Camry / Hilux / Golf / ID.3 / ID.4 / ID.7 / Passat / Tiguan / Ioniq 5 / Ioniq 6 / EV6 / Leaf / Ariya / SU7 / YU7 / ES6 / ET5 / P7 / G6 / G9 / L6 / L7 / L8 / L9 / Mustang Mach-E / F-150 Lightning / Silverado EV / R1T / R1S / Air / EX30 / EX90
+     **规则**：任何车型名、平台代号保留英文；不要意译
+   - 平台与架构（举例 + 通用规则）：MEB / MQB / PPE / e-TNGA / E-GMP / Ultium / CMA / SEA / Neue Klasse / SSP
+   - 技术与缩写（举例 + 通用规则）：EV / BEV / PHEV / HEV / EREV / ADAS / L2 / L3 / L4 / FSD / NOA / NGP / XNGP / LiDAR / OTA / V2G / V2L / AWD / RWD / FWD / kWh / kW / Nm / WLTP / CLTC / EPA / NVH / SoC / SoH / SiC / MOSFET / MCU / ECU
+     **规则**：任何 2-5 字母的全大写缩写，默认按汽车行业含义保留英文
+   - 机构与媒体（举例 + 通用规则）：NHTSA / IIHS / Euro NCAP / C-NCAP / EPA / CARB / WLTP / IEA / SMMT / ACEA
+   - 评测与榜单：IIHS Top Safety Pick / Euro NCAP 五星 / Consumer Reports / JD Power
 
-3. 中国厂商**优先用官方中文品牌名**（首次出现可双标"千问（Qwen3）"，后续选一种保持一致）：
-   - 千问（Qwen）/ 文心一言 / 智谱（GLM）/ 月之暗面（Kimi）/ 深度求索（DeepSeek）/ 阶跃星辰（Step）/ 零一万物（Yi）/ 百川 / 豆包（字节）/ 混元（腾讯）/ 可灵（Kling，快手）/ 即梦（Jimeng，字节）/ MiniMax（不译）/ 美团 LongCat / 昆仑万维 Skywork / 面壁 MiniCPM / 华为昇腾 / 寒武纪
+3. 中国厂商**优先用官方中文品牌名**（首次出现可双标"比亚迪（BYD）"，后续选一种保持一致）：
+   - 比亚迪（BYD）/ 蔚来（NIO）/ 小鹏（XPeng）/ 理想（Li Auto）/ 小米汽车（Xiaomi EV）/ 吉利（Geely）/ 极氪（Zeekr）/ 领克（Lynk & Co）/ 长城（GWM）/ 长安（Changan）/ 奇瑞（Chery）/ 广汽（GAC）/ 上汽（SAIC）/ 名爵（MG）/ 荣威（Roewe）/ 五菱（Wuling）/ 宁德时代（CATL）/ 华为（Huawei）/ 地平线（Horizon）/ 禾赛（Hesai）
 
-4. 代码 / 命令 / URL / 数字单位 **一字不改**保留：
-   - 反引号代码 `code` 不翻译
-   - 命令如 /code-review、pip install、npm run 不译（不要译"代码审查"）
+4. 数字与单位 **一字不改**保留：
+   - 反引号代码与技术名 `code` 不翻译
    - URL 原样
-   - 数字+单位：8k context / 175B params / 3.5x speedup / $3 per M tokens / 99.9%
-   - 金额、参数量、比例、区间必须保留原文的阿拉伯数字和单位；不要把 $10B-$100B 改写成“数百亿至数千亿美元”等中文数量词
+   - 数字+单位：500 km / 100 kWh / 800V / 250 kW / 4.9s 0-100km/h / 450 hp / 350 Nm / $39,990 / 30 分钟 10–80%
+   - 金额、续航、功率、加速、价格必须保留原文的阿拉伯数字和单位；不要把 "$39,990" 改写成"约四万美元"，也不要把 "500 km" 改写成约数
+   - 里程与速度单位保持原文（mi 不要换算成 km，km/h 不要换算成 mph）

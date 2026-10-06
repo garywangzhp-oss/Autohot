@@ -49,8 +49,10 @@ export const SCORE_CALLS = 2;
  * The thresholds on the mean score, per source tier (industry/selection.ts): selected when
  * score1 + score2 >= 2 × threshold. Tiers without a threshold are not scored for 精选.
  */
-export function tierThreshold(tier: string): number | null {
-  return SELECTION.thresholds[tier] ?? null;
+export function tierThreshold(tier: string, model?: string | null): number | null {
+  // 分数尺度跟模型绑定：先看这个模型自己的门槛（模型 id），再退回默认。
+  const byModel = model ? SELECTION.byModel[model] : undefined;
+  return byModel?.[tier] ?? SELECTION.thresholds[tier] ?? null;
 }
 
 /** Unselected items above this mean are written like selected ones. */
@@ -310,8 +312,9 @@ export async function runSelectionScores(
   opts: StepOpts = {},
   onReceipt?: ReceiptObserver,
 ): Promise<AnalysisRun["scores"]> {
-  const threshold = tierThreshold(a.source.tier);
-  return threshold === null ? null : runScores(a, threshold, opts, onReceipt);
+  const model = opts.scoreModel ?? (await modelFor("score"));
+  const threshold = tierThreshold(a.source.tier, MODELS[model]?.model ?? model);
+  return threshold === null ? null : runScores(a, threshold, { ...opts, scoreModel: model }, onReceipt);
 }
 
 export async function runStructure(a: AnalyzeInputArticle, opts: StepOpts = {}): Promise<NonNullable<AnalysisRun["structure"]>> {

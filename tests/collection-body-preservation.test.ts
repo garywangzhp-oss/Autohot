@@ -1,4 +1,4 @@
-// Metadata recovery must not replace an already confirmed article body with another rendering of
+// Fordham recovery must not replace an already confirmed article body with another rendering of
 // the page; the same free detail response can still supply a body when none was confirmed before.
 import { tag } from "./setup.ts";
 import assert from "node:assert/strict";

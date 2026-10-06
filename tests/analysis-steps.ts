@@ -3,6 +3,7 @@
 // test that recognises a request by its whole prompt and scores against the pack's threshold keeps
 // working when a site rewrites the prompts and recalibrates the thresholds for its own industry.
 import { SCORE_SYSTEM, STRUCTURE_SYSTEM, tierThreshold } from "@aihot/backend/editorial/analyze";
+import { MODELS } from "@aihot/backend/providers/llm";
 import { PREFILTER_SYSTEM, UNDERSTAND_SYSTEM } from "@aihot/backend/editorial/writing";
 
 export type AnalysisStep = "prefilter" | "score" | "structure" | "understand" | "summarize";
@@ -20,5 +21,8 @@ export function analysisStep(body: string): AnalysisStep {
   return step;
 }
 
+/** The scoring model tests/setup.ts configures: thresholds are model-specific (industry/selection.ts). */
+export const SCORING_MODEL_ID = MODELS[process.env.SCORE_MODEL ?? "default"]?.model ?? process.env.SCORE_MODEL ?? "default";
+
 /** Both score calls at the T1 threshold: material from a T1 source is selected, with this mean score. */
-export const SELECTING_SCORE = tierThreshold("T1")!;
+export const SELECTING_SCORE = tierThreshold("T1", SCORING_MODEL_ID)!;

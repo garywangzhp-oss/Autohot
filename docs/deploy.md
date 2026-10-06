@@ -12,6 +12,8 @@ node scripts/init-env.ts --llm-key <你的模型 API Key>
 
 `init-env.ts` 会生成 `.env`，填好随机密钥和管理员密码，并把密码打印一次。机器上没有 Node 的话，把 `.env.example` 复制成 `.env`，自己填 `ADMIN_PASSWORD`（至少 12 位）、`SESSION_SECRET`、`IMG_PROXY_SIGN_SECRET`、`POSTGRES_PASSWORD`（各用 `openssl rand -hex 32` 生成）和 `LLM_API_KEY`。
 
+模型用任何 OpenAI 兼容接口都行：在 `.env` 里填 `LLM_BASE_URL`、`LLM_API_KEY`、`LLM_MODEL`。有些网关还要求额外的请求头（例如 OpenCode Zen 的 `x-opencode-session`），用 `LLM_EXTRA_HEADERS` 传一个 JSON 对象，它会加在**每一次**模型请求上：`LLM_EXTRA_HEADERS={"x-opencode-session":"your-session-id"}`。推理模型（先想再答）还要设 `LLM_REASONING_TOKENS` 给推理留出额度，否则推理会把输出额度用光、答案为空（例如 8000）。
+
 启动前检查 `.env` 的 `SITE_URL`：本机试用保留 `http://localhost:3000`；部署到服务器时改成读者实际访问的地址。例如通过服务器 IP 访问时（把示例 IP 换成自己的）：
 
 ```dotenv

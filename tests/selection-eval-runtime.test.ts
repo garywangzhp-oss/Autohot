@@ -2,7 +2,7 @@
 // route, shares one score among cases with the same score input without sharing their tier decisions,
 // counts every paid attempt, and never writes its report outside its folder.
 import { pointModels, stub, tag } from "./setup.ts";
-import { SELECTING_SCORE } from "./analysis-steps.ts";
+import { SCORING_MODEL_ID, SELECTING_SCORE } from "./analysis-steps.ts";
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
 import { execFile } from "node:child_process";
@@ -18,7 +18,7 @@ const exec = promisify(execFile);
 
 // Both cases get the score that selects at the pack's T1 threshold; T2 selects with it only where its
 // own threshold is no higher (industry/selection.ts).
-const T2_DECISION = tierThreshold("T2")! <= SELECTING_SCORE ? "select" : "reject";
+const T2_DECISION = tierThreshold("T2", SCORING_MODEL_ID)! <= SELECTING_SCORE ? "select" : "reject";
 
 interface GoldRow {
   caseId: string;

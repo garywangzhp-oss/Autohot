@@ -65,7 +65,7 @@ test("origin-form slashes keep the router's homepage and unknown-route semantics
   for (const method of ["GET", "HEAD"] as const) {
     const home = await raw("/", method);
     assert.equal(home.status, 200, logs);
-    for (const path of ["//", "////", "//?category=ai-models"]) {
+    for (const path of ["//", "////", "//?category=new-models"]) {
       const res = await raw(path, method);
       assert.equal(res.status, 200, `${method} ${path}: ${logs}`);
       assert.equal(res.headers["content-type"], home.headers["content-type"]);

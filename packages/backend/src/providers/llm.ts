@@ -18,6 +18,8 @@ export interface ModelSpec {
   extra?: Record<string, unknown>;
   /** Output tokens added to every call's own limit for a reasoning model, which reasons before it answers. */
   reasoningTokens?: number;
+  /** Extra request headers, e.g. a session id a gateway requires. */
+  headers?: Record<string, string>;
   jsonMode: boolean;
   vision?: boolean;
 }
@@ -35,6 +37,20 @@ function reasoningTokensFromEnv(value: string | undefined): number | undefined {
   if (!value) return undefined;
   if (!/^\d+$/.test(value)) throw new Error("LLM_REASONING_TOKENS must be a non-negative integer, e.g. 4000");
   return Number(value);
+}
+
+function headersFromEnv(value: string | undefined): Record<string, string> | undefined {
+  if (!value) return undefined;
+  let parsed: unknown;
+  try { parsed = JSON.parse(value); }
+  catch { throw new Error('LLM_EXTRA_HEADERS must be a JSON object of string values, e.g. {"x-opencode-session": "abc"}'); }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('LLM_EXTRA_HEADERS must be a JSON object of string values');
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+    if (typeof v !== 'string') throw new Error('LLM_EXTRA_HEADERS: ' + k + ' must be a string');
+    out[k] = v;
+  }
+  return out;
 }
 
 export const MODELS: Record<string, ModelSpec> = {
@@ -167,7 +183,7 @@ export async function chatJson<S extends z.ZodType>(opts: ChatJsonOptions<S>): P
       try {
         res = await fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
           method: "POST",
-          headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
+          headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}`, ...(headersFromEnv(process.env.LLM_EXTRA_HEADERS) ?? {}), ...(spec.headers ?? {}) },
           body: JSON.stringify(body),
           signal: AbortSignal.timeout(opts.timeoutMs ?? 120_000),
         });
