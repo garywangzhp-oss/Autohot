@@ -8,6 +8,8 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 FROM base AS build
+# Playwright is only used by the development tests; skip its browser download in the image build.
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 ARG NPM_REGISTRY=
 COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/

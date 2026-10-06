@@ -62,6 +62,19 @@ MCP 默认接受 `SITE_URL` 的主机以及 `localhost`、`127.0.0.1`、`[::1]`�
 
 前面有 Nginx、CDN 这类缓存时，要遵循应用返回的缓存期限（`Cache-Control`）：公开网页、导航数据、API、RSS、条目 Markdown、报告分享图、站点地图，以及接入说明 `/api/v1/agent` 和 `/openapi-v1.json`（五分钟到期后也要重新验证），都不要另加更长的缓存期，不要在到期后离线返回旧内容，也不要在转发旧响应时重新起算它的寿命；不要让代理和 CDN 叠加缓存动态内容。框架不代管自建站的 CDN，也不替它清缓存。
 
+### 用 Cloudflare Tunnel（没有公网 IP、或 80/443 被封时）
+
+Cloudflare Tunnel 是**出站**连接：不用公网 IP、不用开放任何入站端口，源站地址也不会暴露。
+
+1. Cloudflare Zero Trust → Networks → Tunnels → Create a tunnel，复制 token；
+2. 在 `.env` 里填 `CLOUDFLARE_TUNNEL_TOKEN=<token>`、`SITE_URL=https://你的域名`、`TRUST_PROXY=true`；
+3. 在这条隧道里加一个 Public Hostname，Service 指向 `http://web:3000`（同一个 compose 网络里用服务名）；
+4. `docker compose --profile tunnel up -d --build`。
+
+想把 3000 端口只绑本机，把 `PORT` 设成 `127.0.0.1:3000`；完全不对局域网暴露就去掉
+`docker-compose.yml` 里 `web` 的 `ports`。上线后公开页面/API/RSS 的 `Cache-Control` 不要在
+Cloudflare 上加长（不要开 Cache Everything），见上面的缓存说明。
+
 ### 更新
 
 先按下方 [备份](#备份) 一节备份。构建完成后停止旧服务，再运行迁移和新版服务：

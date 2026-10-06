@@ -1,5 +1,6 @@
 # docker compose up -d --build     → http://localhost:3000   (the admin is at /admin)
 # docker compose --profile https up -d --build   → HTTPS for SITE_DOMAIN through Caddy
+# docker compose --profile tunnel up -d --build  → publish through a Cloudflare Tunnel (no inbound port)
 name: aihot
 
 x-app: &app
@@ -82,6 +83,19 @@ services:
       - "${PORT:-3000}:3000"
     depends_on:
       api:
+        condition: service_started
+
+  # Cloudflare Tunnel: this container dials out to Cloudflare, so nothing has to be exposed to the
+  # internet (no public port, no inbound firewall rule, the origin address stays hidden). In the
+  # Cloudflare dashboard create a tunnel, add a public hostname pointing at http://web:3000, put the
+  # tunnel token in .env as CLOUDFLARE_TUNNEL_TOKEN, then start with --profile tunnel.
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    profiles: ["tunnel"]
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "run", "--token", "${CLOUDFLARE_TUNNEL_TOKEN:-}"]
+    depends_on:
+      web:
         condition: service_started
 
   caddy:
