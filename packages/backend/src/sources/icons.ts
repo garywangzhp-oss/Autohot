@@ -92,6 +92,9 @@ function homeOf(articleUrls: string[], config: Record<string, unknown>): string 
 }
 
 async function findIcon(kind: string, articleUrls: string[], config: Record<string, unknown>): Promise<string | null> {
+  // A source may name its own picture: a video channel's avatar is not on the pages it publishes.
+  const named = typeof config.iconUrl === "string" ? config.iconUrl.trim() : "";
+  if (named) return firstUsable([named]);
   if (kind === "mp_account") {
     // WeChat answers bursts with "未知错误": take the account's two latest articles, slowly.
     for (const url of articleUrls.slice(0, 2)) {

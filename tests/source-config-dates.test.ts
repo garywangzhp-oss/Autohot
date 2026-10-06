@@ -23,3 +23,12 @@ test("channels that do not apply the publication boundary refuse it instead of i
     assert.deepEqual(unsupportedConfig(kind, { publishedAfter: "2026-09-28T00:00:00Z" }), ["publishedAfter"]);
   }
 });
+
+test("every kind may name its own icon, and only an https address is accepted", () => {
+  for (const kind of ["rss", "web_list", "json_list", "x_search", "mp_account", "external"] as const) {
+    assert.deepEqual(unsupportedConfig(kind, { iconUrl: "https://example.com/avatar.png" }), [], kind);
+  }
+  for (const iconUrl of ["http://example.com/a.png", "/avatar.png", "", null, 12]) {
+    assert.deepEqual(unsupportedConfig("rss", { iconUrl }), ["iconUrl"], String(iconUrl));
+  }
+});
