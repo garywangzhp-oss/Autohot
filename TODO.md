@@ -2,6 +2,26 @@
 
 新的一条记在最上面，做完就删掉。
 
+## 中英文切换（网站语言）
+
+想让读者在中英文之间切换。**工程量大，动手前先确认范围。**
+
+- **现状**：框架没有任何多语言机制，`SITE.locale` 只是个静态值（`<html lang>`、结构化数据用）。
+  - 界面文案硬编码在组件里：`apps/web/app` 的 122 个前端文件里 **91 个含中文，约 9400 个中文字**。
+  - 内容管道是"中文优先"：字段就叫 `analyses.title_zh` / `summary_zh` / `reason_zh`，模型只写中文；
+    原文存在 `publications.original_title` 和 `articles.summary`。
+  - 日报、周报、月报是模型写的中文长文，没有英文版。
+- **三块工作**：
+  1. **界面双语**：把 91 个文件的文案抽出来 + 语言状态 + 切换按钮 + 记住选择。运行零成本，开发量大。
+  2. **标题摘要双语**：加英文字段 + 改提示词让模型**一次出中英两份**（调用次数不变，多 30–50% 输出 token）。性价比最高。
+  3. **报告双语**：长文，成本明显；也可以只翻标题和导语。
+- **零成本的替代方案**：做"原文模式"——英文时显示 `publications.original_title` + `articles.summary`
+  （本来就是英语/德语/日语原文），不调模型、不改库。缺点是各源摘要长短不一，非英语源照样看不懂。
+- **待确认（决定后才好排期）**：
+  1. 给谁用——中文读者偶尔想看清原文（原文模式就够），还是英文读者要正常用这个站（要完整双语）；
+  2. 旧内容怎么办——不补、等新文章；还是批量翻译（要花钱）。
+- **建议路径**：界面双语 + 标题摘要双语，报告先只翻标题；分 3–4 次做，每一步都能独立上线。
+
 ## 钉钉日报推送
 
 想让每天出刊的日报自动发到钉钉群。
@@ -22,8 +42,7 @@
 ## 域名与部署
 
 - 腾讯云 `autohot.top` 的 NS 已改到 Cloudflare（`hadlee` / `lewis.ns.cloudflare.com`），站点域名已激活。
-- **未完成**：Cloudflare 隧道连着报 `Unauthorized: Tunnel not found`（token 对应的隧道被删过），
-  要重新复制当前隧道的 token 到 `.env` 的 `CLOUDFLARE_TUNNEL_TOKEN`，再
-  `docker compose --profile tunnel up -d --force-recreate cloudflared`；然后确认隧道里有
-  `autohot.top` → `HTTP` → `web:3000` 这条 Public Hostname。
-- **未完成**：通网后收尾——Cloudflare SSL/TLS 设 Full、打开 Always Use HTTPS、腾讯云防火墙删掉 3000 端口。
+- **已完成**：Cloudflare 隧道通了，站点在 **https://www.autohot.top** 正常访问（200）。
+- **未完成**：根域名 `autohot.top` 没有 DNS 记录（只有 `www` 有）。修法：Cloudflare →
+  隧道 → Public Hostname 里再加一条，Subdomain **留空**、Domain `autohot.top`、Service `HTTP` → `web:3000`。
+- **未完成**：腾讯云防火墙 3000 端口目前对外不通（按之前的收尾做掉了）；如果要保留 IP 直连访问就加回来。
