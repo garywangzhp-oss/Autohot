@@ -50,6 +50,12 @@ export const PRESETS: Record<string, ModelPreset> = {
   },
   // OpenCode Zen 网关上的模型：共用 LLM_BASE_URL / LLM_API_KEY，模型名各不相同。
   "zen-deepseek-v4.1-flash": { service: "opencode", model: "deepseek-v4.1-flash", baseUrlEnv: "LLM_BASE_URL", apiKeyEnv: "LLM_API_KEY", reasoningTokens: 8000, jsonMode: true },
+  // 同一个模型、同一个网关，但把推理关掉：给 prefilter / structure / summarize / translate 这类短任务用。
+  // 这些步骤不需要"先想再答"，关掉能省下一次调用上千个推理 token；打分和写作用推理的那几个步骤仍走 default。
+  "zen-deepseek-v4.1-flash-nothink": {
+    service: "opencode", model: "deepseek-v4.1-flash", baseUrlEnv: "LLM_BASE_URL", apiKeyEnv: "LLM_API_KEY",
+    extra: { thinking: { type: "disabled" } }, jsonMode: true,
+  },
   "zen-glm-5.3-flash": { service: "opencode", model: "glm-5.3-flash", baseUrlEnv: "LLM_BASE_URL", apiKeyEnv: "LLM_API_KEY", reasoningTokens: 8000, jsonMode: true },
   "zen-mimo-v2.6-flash": { service: "opencode", model: "mimo-v2.6-flash", baseUrlEnv: "LLM_BASE_URL", apiKeyEnv: "LLM_API_KEY", reasoningTokens: 8000, jsonMode: true },
   "zen-qwen3.7-plus": { service: "opencode", model: "qwen3.7-plus", baseUrlEnv: "LLM_BASE_URL", apiKeyEnv: "LLM_API_KEY", reasoningTokens: 8000, jsonMode: true },
@@ -67,4 +73,15 @@ export const PRESETS: Record<string, ModelPreset> = {
  * 每一步默认用的模型（步骤见后台“模型与评测”页），值是上面的名字或 default。没写的步骤用 default。
  * 例：{ score: "glm-5.3-flash-selection", groupReview: "mimo-v2.6-flash" }
  */
-export const DEFAULTS: Record<string, string> = {};
+export const DEFAULTS: Record<string, string> = {
+  // 只判断"是不是汽车行业的事"，不用推理；量最大，关掉推理省得最多。
+  prefilter: "zen-deepseek-v4.1-flash-nothink",
+  // 抽分类、标签、主体和事件事实，是结构化抽取，不是判断题。
+  structure: "zen-deepseek-v4.1-flash-nothink",
+  // 没入选文章的标题与摘要（翻译+压缩），也不用推理。
+  summarize: "zen-deepseek-v4.1-flash-nothink",
+  // 精选全文翻译，纯翻译任务。
+  translate: "zen-deepseek-v4.1-flash-nothink",
+  // 其余步骤（score / understand / group / groupReview / digest / report）保持 default，
+  // 也就是 LLM_MODEL + LLM_EXTRA_JSON 的推理设置——精选门槛是按这个设定校准的，别动。
+};
