@@ -1,6 +1,6 @@
 // Failure cases at the publication → hot-cover boundary: a warmed ranking must drop a withdrawn
-// secondary report's image and a revoked full-text image; another public report may replace it.
-// These checks use the real database/read path, with the same ranking kept throughout each change.
+// secondary report's image, keep a summary-only report's (the card credits the source and links to
+// it), and fall back once nothing public is left. Real database/read path, same ranking throughout.
 import './setup.ts';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
@@ -11,7 +11,7 @@ import { loadHot } from '@aihot/backend/publication/stories';
 
 after(closeDb);
 
-test('hot covers follow current visibility and full-text rights within one ranking', async () => {
+test('hot covers follow current visibility and can come from summary-only reports', async () => {
   const source = 'cover-scope';
   const at = new Date(Date.now() - 60_000);
   await sql`INSERT INTO sources (id,name,kind,tier,participation_mode,next_fetch_at)
@@ -42,6 +42,9 @@ test('hot covers follow current visibility and full-text rights within one ranki
   assert.equal(await cover(),'https://example.org/primary.png');
   await sql`UPDATE publications SET visibility = 'withdrawn' WHERE article_id = 'cover-primary'`;
   assert.equal(await cover(),'https://example.org/fallback.png','a withdrawn secondary report cannot remain the cover');
+  // 摘要模式的文章照样借图：卡片上的缩略图注明来源并链回原文，跟转载全文是两回事。
   await sql`UPDATE publications SET body_mode = 'summary' WHERE article_id = 'cover-fallback'`;
-  assert.equal(await cover(),null,'revoking full-text permission also removes its cover');
+  assert.equal(await cover(),'https://example.org/fallback.png','a summary-only report still lends its picture');
+  await sql`UPDATE publications SET visibility = 'withdrawn' WHERE article_id = 'cover-fallback'`;
+  assert.equal(await cover(),null,'withdrawing it leaves no picture at all');
 });
