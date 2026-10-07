@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { useLayoutEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { Link } from "react-router";
 import { IntentLink } from "./IntentLink";
 import { useEntrance } from "../../lib/hydration";
@@ -73,20 +73,24 @@ export function PillTabs({
   size?: keyof typeof SIZES;
   label?: string;
   fill?: boolean;
-  /** Wrap the options onto more rows instead of scrolling sideways (long lists such as the categories). */
+  /**
+   * Wrap the options onto more rows instead of scrolling sideways (long lists such as the categories).
+   * 宽屏（≥1440px）改成两行等宽的网格：18 个分类排成 9 + 9，两行一样长、上下对齐；窄屏仍然换行。
+   */
   wrap?: boolean;
   className?: string;
 }) {
   const links = items.some((t) => t.to);
   const Track = links ? "nav" : "div";
   return (
-    <div className={`max-w-full ${fill ? "w-full" : ""} ${wrap ? "" : "scrollbar-none overflow-x-auto"} ${className}`}>
+    <div className={`max-w-full scrollbar-none overflow-x-auto ${fill ? "w-full" : ""} ${className}`}>
       <Track
         data-pill-track=""
         aria-label={label}
         role={links ? undefined : "tablist"}
-        className={`${fill ? "grid w-full" : wrap ? "flex flex-wrap" : "inline-flex w-max"} gap-0.5 ${wrap ? "rounded-2xl" : "rounded-full"} bg-bg-sunk p-0.5 lg:p-[3px] ring-1 ring-inset ring-line-soft dark:bg-bg-muted/60`}
-        style={fill ? { gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` } : undefined}
+        className={`${fill ? "grid w-full" : wrap ? "flex flex-wrap min-[1440px]:grid min-[1440px]:grid-cols-[repeat(var(--wrap-cols),minmax(max-content,1fr))]" : "inline-flex w-max"} gap-0.5 ${wrap ? "rounded-2xl" : "rounded-full"} bg-bg-sunk p-0.5 lg:p-[3px] ring-1 ring-inset ring-line-soft dark:bg-bg-muted/60`}
+        style={fill ? { gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }
+          : wrap ? ({ "--wrap-cols": String(Math.ceil(items.length / 2)) } as CSSProperties) : undefined}
       >
         {items.map((t) => {
           const on = t.key === active;
