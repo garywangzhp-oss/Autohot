@@ -59,6 +59,17 @@ export const PRESETS: Record<string, ModelPreset> = {
   "zen-glm-5.3-flash": { service: "opencode", model: "glm-5.3-flash", baseUrlEnv: "LLM_BASE_URL", apiKeyEnv: "LLM_API_KEY", reasoningTokens: 8000, jsonMode: true },
   "zen-mimo-v2.6-flash": { service: "opencode", model: "mimo-v2.6-flash", baseUrlEnv: "LLM_BASE_URL", apiKeyEnv: "LLM_API_KEY", reasoningTokens: 8000, jsonMode: true },
   "zen-qwen3.7-plus": { service: "opencode", model: "qwen3.7-plus", baseUrlEnv: "LLM_BASE_URL", apiKeyEnv: "LLM_API_KEY", reasoningTokens: 8000, jsonMode: true },
+  // 备用供应商：Command Code（https://api.commandcode.ai/provider/v1）。它也有 deepseek-v4.1-flash，
+  // 所以切过去不用重新校准精选门槛——同一个底层模型，分数尺一样。密钥走 COMMANDCODE_API_KEY。
+  "commandcode-deepseek-v4.1-flash": {
+    service: "commandcode", model: "deepseek/deepseek-v4.1-flash", baseUrlEnv: "COMMANDCODE_BASE_URL", apiKeyEnv: "COMMANDCODE_API_KEY",
+    reasoningTokens: 8000, jsonMode: true,
+  },
+  // 同上，但关掉推理，配给 prefilter / structure / summarize / translate。
+  "commandcode-deepseek-v4.1-flash-nothink": {
+    service: "commandcode", model: "deepseek/deepseek-v4.1-flash", baseUrlEnv: "COMMANDCODE_BASE_URL", apiKeyEnv: "COMMANDCODE_API_KEY",
+    extra: { thinking: { type: "disabled" } }, jsonMode: true,
+  },
   "mimo-v2.6-flash": {
     service: "mimo", model: "mimo-v2.6-flash", baseUrlEnv: "XIAOMI_MIMO_BASE_URL", apiKeyEnv: "XIAOMI_MIMO_API_KEY",
     extra: { thinking: { type: "disabled" } }, jsonMode: true,

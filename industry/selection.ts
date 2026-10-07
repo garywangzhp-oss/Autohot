@@ -24,6 +24,8 @@ export const SELECTION = {
   /** 按评分模型（模型 id）覆盖门槛；上面 thresholds 是没匹配到时的兜底。 */
   byModel: {
     "deepseek-v4.1-flash": { T1: 21, T1_5: 23, T2: 26 },
+    // 备用供应商（Command Code）上是同一个底层模型，分数尺一样，门槛照抄。
+    "deepseek/deepseek-v4.1-flash": { T1: 21, T1_5: 23, T2: 26 },
     "glm-5.3-flash": { T1: 25, T1_5: 27, T2: 30 },
     "mimo-v2.6-flash": { T1: 27, T1_5: 29, T2: 32 },
     "qwen3.7-plus": { T1: 13, T1_5: 15, T2: 18 },
