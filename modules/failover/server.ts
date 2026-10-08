@@ -35,8 +35,15 @@ const SAVED_KEY = "failover.saved";
 const REFUSALS_TO_SWITCH = 3;
 /** 切到备用后至少待多久才去探活主供应商，避免额度刚恢复就来回跳。 */
 const MIN_BACKUP_MINUTES = 20;
-/** 和框架的额度告警用同一套字样。 */
-const REFUSAL = "(HTTP 40[123]|insufficient|balance|arrear|good standing|欠费|余额)";
+/**
+ * 哪些拒绝算"供应商这条线不能用了"。
+ *
+ * 和框架自带的额度告警用同一套字样，再补上"套餐额度用尽"的表达。为什么必须补：
+ * OpenCode 的套餐额度用完返回的是 **HTTP 429 + {"type":"GoUsageLimitError","message":"Go usage limit exceeded"}**
+ * —— 既不是 402/403，字面也没有"余额"。而 429 本身也可能是普通限流（那不该切走），
+ * 所以这里认的是**文案**（usage limit / quota exceeded 之类），不是状态码。
+ */
+const REFUSAL = "(HTTP 40[123]|insufficient|balance|arrear|good standing|欠费|余额|usage limit|quota exceeded|GoUsageLimit)";
 const ACTOR = "auto-failover";
 
 interface SavedState {

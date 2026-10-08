@@ -9,6 +9,8 @@ import { failover } from "../modules/failover/server.ts";
 
 const T = tag();
 const QUOTA_ERROR = "llm HTTP 402: insufficient balance 余额不足";
+/** OpenCode 的套餐额度用尽长这样：429 + GoUsageLimitError（不是 402/403，字面也没有"余额"）。 */
+const USAGE_LIMIT_ERROR = 'llm HTTP 429: {"type":"error","error":{"type":"GoUsageLimitError","message":"Go usage limit exceeded"}}';
 /** 探活的假主供应商返回什么。 */
 let probeStatus = 402;
 let stub: Server;
@@ -20,11 +22,11 @@ const modelsOf = async () => new Map((await sql<{ key: string; value: { model: s
 const backup = async () => (await sql`SELECT 1 FROM settings WHERE key = 'failover.saved'`).length > 0;
 
 /** One refused attempt, the way the engine records them. */
-async function refusal(n: number) {
+async function refusal(n: number, error = QUOTA_ERROR) {
   const [rc] = await sql<{ id: number }[]>`INSERT INTO receipts (logical_key, service, model, purpose, status)
     VALUES (${`failover-${T}-${n}`}, 'opencode', 'deepseek-v4.1-flash', 'prefilter_article', 'failed') RETURNING id`;
   await sql`INSERT INTO receipt_attempts (receipt_id, service, attempt, status, error, origin, started_at)
-    VALUES (${rc!.id}, 'opencode', 1, 'failed', ${QUOTA_ERROR}, 'live', now() - interval '5 minutes')`;
+    VALUES (${rc!.id}, 'opencode', 1, 'failed', ${error}, 'live', now() - interval '5 minutes')`;
 }
 
 before(async () => {
@@ -80,4 +82,21 @@ test("一次被拒不动，攒够三次才切；切到备用后告警，探活�
   }
   assert.equal(await backup(), false, "备用标记清掉了");
   assert.equal((await failover.alerts!(Date.now())).length, 0, "切回后告警消失");
+});
+
+test("OpenCode 的套餐额度用尽（HTTP 429 + Go usage limit exceeded）也算被拒，会触发切换", async () => {
+  // 先把上一个测试留下的拒绝记录清掉，这样这次切换只可能是被 usage limit 触发的
+  await sql`DELETE FROM receipt_attempts WHERE receipt_id IN (SELECT id FROM receipts WHERE logical_key LIKE ${"failover-" + T + "%"})`;
+  await sql`DELETE FROM receipts WHERE logical_key LIKE ${"failover-" + T + "%"}`;
+
+  for (let i = 0; i < 3; i++) await refusal(100 + i, USAGE_LIMIT_ERROR);
+  const moved = (await run()) as { state: string; switched?: boolean; detail?: string };
+  assert.equal(moved.state, "backup", "按文案认出了套餐额度用尽");
+  assert.equal(moved.switched, true);
+  assert.deepEqual(moved.detail, `opencode 3 次：${USAGE_LIMIT_ERROR}`);
+
+  // 收尾：切回主供应商
+  await sql`UPDATE settings SET value = jsonb_set(value, '{at}', to_jsonb(${new Date(Date.now() - 30 * 60_000).toISOString()}::text)) WHERE key = 'failover.saved'`;
+  probeStatus = 200;
+  assert.deepEqual(await run(), { state: "primary", restored: true });
 });
