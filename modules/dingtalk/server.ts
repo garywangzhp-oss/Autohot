@@ -167,13 +167,20 @@ async function pushDaily() {
 
 async function pushContent() {
   const cursor = await readValue<{ at: string; id: string }>(CONTENT_CURSOR);
-  const after = cursor ? sql`AND (p.selected_ready_at, p.article_id) > (${cursor.at}::timestamptz, ${cursor.id}::text)` : sql``;
-  // 候选只挑规则允许进内容群的：精选、公开、已发布，且是一手/准一手信源（跟 selected-content.ts 一致）。
+  if (!cursor) {
+    // 第一次跑：从此刻开始算，不把启用之前的历史精选倒进群里（框架的内容群也是这个规矩：
+    // enabled_at 之前的内容不回填）。否则会从三年前那条开始一条条爬。
+    await writeValue(CONTENT_CURSOR, { at: new Date().toISOString(), id: "" });
+    return { candidates: 0, sent: 0, note: "第一次运行：从此刻开始，不回填历史精选" };
+  }
+  const after = sql`AND (p.selected_ready_at, p.article_id) > (${cursor.at}::timestamptz, ${cursor.id}::text)`;
+  // 候选只挑规则允许进内容群的：精选、公开、已发布，且是一手/准一手中信源（跟 selected-content.ts 一致）。
+  // 再套一层 12 小时：超过 12 小时的那边本来就会判 not live，不该占掉一轮的名额。
   const candidates = await sql<{ article_id: string; selected_ready_at: Date }[]>`
     SELECT p.article_id, p.selected_ready_at
     FROM publications p JOIN sources s ON s.id = p.source_id
     WHERE p.selected AND p.visibility = 'public' AND p.eligible AND p.visible_after <= now()
-      AND p.selected_ready_at IS NOT NULL
+      AND p.selected_ready_at IS NOT NULL AND p.timeline_at > now() - interval '12 hours'
       AND s.participation_mode = 'editorial' AND s.tier IN ('T1', 'T1_5')
       ${after}
     ORDER BY p.selected_ready_at, p.article_id

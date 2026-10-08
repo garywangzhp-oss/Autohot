@@ -1,5 +1,6 @@
-// 精选卡片推到钉钉：模块每 5 分钟看一次新进精选的条目，一条一张 actionCard（标题/正文/两个按钮），
-// 推到哪记在水位线上（重启或重跑不会重发），已经不符合条件的跳过但水位线照样往前走。
+// 精选卡片推到钉钉：模块每 5 分钟看一次新进精选，一条一张 actionCard（标题/正文/两个按钮）。
+// 第一次运行只把水位线定在「此刻」，不倒历史；之后每条推一次，重启或重跑不重发；
+// 太旧的条目跳过，但水位线照样往前走，不会卡住后面的。
 import { tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
@@ -9,13 +10,20 @@ import { SITE } from "@aihot/site";
 import { dingtalk } from "../modules/dingtalk/server.ts";
 
 const T = tag();
-const ITEM = `dingtalk-content-${T}`;
 const SOURCE = `dingtalk-content-source-${T}`;
 const TITLE = `精选标题-${T}`;
 
 let stub: Server;
 const calls: Array<{ url: string; payload: any }> = [];
 const runContent = dingtalk.schedules!.find((s) => s.name === "dingtalk.content")!.run;
+
+/** 造一条精选：at 决定它在时间线上的位置（12 小时内才算 live）。 */
+async function selected(id: string, at: Date) {
+  await sql`INSERT INTO articles (id,source_id,identity_key,url,title,discovered_at,timeline_at)
+    VALUES (${id},${SOURCE},${id},${`https://example.org/${id}`},${TITLE},${at},${at})`;
+  await sql`INSERT INTO publications (article_id,source_id,title,summary,reason,url,timeline_at,published_at,discovered_at,sort_at,selected_ready_at,visible_after,body_mode,eligible,selected,channel)
+    VALUES (${id},${SOURCE},${TITLE},${"摘要-" + T},${"理由-" + T},${`https://example.org/${id}`},${at},${at},${at},${at},${at},${at},'summary',true,true,'news')`;
+}
 
 before(async () => {
   stub = createServer((req, res) => {
@@ -33,14 +41,8 @@ before(async () => {
   process.env.DINGTALK_CONTENT_PUSH_ENABLED = "true";
   process.env.DINGTALK_WEBHOOK_URL = `http://127.0.0.1:${port}/robot/send?access_token=test`;
   process.env.DINGTALK_SECRET = "SEC-test-secret";
-
-  const at = new Date(Date.now() - 60_000);
   await sql`INSERT INTO sources (id,name,kind,tier,participation_mode,next_fetch_at)
     VALUES (${SOURCE},'钉钉精选测试源','rss','T1','editorial','2100-01-01')`;
-  await sql`INSERT INTO articles (id,source_id,identity_key,url,title,discovered_at,timeline_at)
-    VALUES (${ITEM},${SOURCE},${ITEM},'https://example.org/dingtalk-content',${TITLE},${at},${at})`;
-  await sql`INSERT INTO publications (article_id,source_id,title,summary,reason,url,timeline_at,published_at,discovered_at,sort_at,selected_ready_at,visible_after,body_mode,eligible,selected,channel)
-    VALUES (${ITEM},${SOURCE},${TITLE},${"摘要-" + T},${"理由-" + T},'https://example.org/dingtalk-content',${at},${at},${at},${at},${at},${at},'summary',true,true,'news')`;
 });
 
 after(async () => {
@@ -49,15 +51,25 @@ after(async () => {
   await closeDb();
 });
 
-test("新进精选推一条 actionCard，水位线挡住重发，不符合条件的跳过但水位线前进", async () => {
-  const first = (await runContent()) as { sent: number };
-  assert.equal(first.sent, 1, "推了一条");
+test("首次只定水位线不倒历史；之后的每条推一次；太旧的跳过但水位线前进", async () => {
+  // 启用之前就已经精选好的：不该倒进群里
+  await selected(`${T}-old`, new Date(Date.now() - 2 * 3600_000));
+  const first = (await runContent()) as { candidates: number; sent: number; note?: string };
+  assert.equal(first.sent, 0, "首次不倒历史");
+  assert.ok(first.note, "说明了为什么");
+  assert.equal(calls.length, 0);
+
+  // 此刻之后新进精选的：一条一张卡片
+  const id = `${T}-new`;
+  await selected(id, new Date());
+  const second = (await runContent()) as { sent: number };
+  assert.equal(second.sent, 1, "推了一条");
   assert.equal(calls.length, 1);
 
   const [call] = calls;
   const url = new URL(call.url, "http://stub");
   assert.ok(url.searchParams.get("timestamp"), "带 timestamp");
-  assert.ok(url.searchParams.get("sign"), "带加签（勾了加签）");
+  assert.ok(url.searchParams.get("sign"), "带加签");
   assert.equal(call.payload.msgtype, "actionCard");
   const { title, text, btns } = call.payload.actionCard;
   assert.equal(title, TITLE, "卡片标题取条目标题");
@@ -67,25 +79,22 @@ test("新进精选推一条 actionCard，水位线挡住重发，不符合条件
   assert.equal(btns.length, 2, "两个按钮");
   assert.ok(btns[0].title.includes(SITE.name), "第一个按钮是站内页");
   assert.equal(btns[1].title, "原文");
-  assert.equal(btns[1].actionURL, "https://example.org/dingtalk-content");
+  assert.equal(btns[1].actionURL, `https://example.org/${id}`);
 
-  // 水位线挡住了：同一条不会再发
-  const second = (await runContent()) as { sent: number };
-  assert.equal(second.sent, 0, "不重发");
+  const third = (await runContent()) as { sent: number };
+  assert.equal(third.sent, 0, "同一条不重发");
   assert.equal(calls.length, 1);
 
-  // 又选上一条「太旧」的（超过 12 小时）：它进得了候选，但发不出去 —— 跳过，水位线要往前走，
-  // 否则会永远卡在它上面，后面的精选都出不来。
-  const now = new Date();
-  const old = new Date(Date.now() - 20 * 3600_000);
-  await sql`INSERT INTO articles (id,source_id,identity_key,url,title,discovered_at,timeline_at)
-    VALUES (${ITEM + "-2"},${SOURCE},${ITEM + "-2"},'https://example.org/dingtalk-content-2',${TITLE + "-2"},${now},${old})`;
-  await sql`INSERT INTO publications (article_id,source_id,title,summary,url,timeline_at,published_at,discovered_at,sort_at,selected_ready_at,visible_after,body_mode,eligible,selected,channel)
-    VALUES (${ITEM + "-2"},${SOURCE},${TITLE + "-2"},'摘要','https://example.org/dingtalk-content-2',${old},${old},${now},${old},${now},${now},'summary',true,true,'news')`;
-  const third = (await runContent()) as { sent: number; skipped?: string[] };
-  assert.equal(third.sent, 0, "太旧的不推");
-  assert.equal(third.skipped?.length, 1, "记了跳过原因");
-  assert.equal(calls.length, 1);
+  // 又有一条「补录进历史」的（backfill）：进得了候选，但 selectedContent 会判 not live。
+  // 跳过它，水位线照样往前走 —— 否则后面真正的精选会被它永远堵住。
+  const stale = `${T}-stale`;
+  await selected(stale, new Date());
+  await sql`UPDATE publications SET backfill = true WHERE article_id = ${stale}`;
+  const fourth = (await runContent()) as { candidates: number; sent: number; skipped?: string[] };
+  assert.equal(fourth.candidates, 1, "它进得了候选");
+  assert.equal(fourth.sent, 0, "补录的不推");
+  assert.equal(fourth.skipped?.length, 1, "记了跳过原因");
+  assert.ok(fourth.skipped![0]!.includes("not live"), "原因是 not live");
   const [cursor] = await sql<{ value: { id: string } }[]>`SELECT value FROM settings WHERE key = 'dingtalk.contentCursor'`;
-  assert.equal(cursor!.value.id, `${ITEM}-2`, "水位线走到了那条之前");
+  assert.equal(cursor!.value.id, stale, "水位线走到了它之后，不会堵住后面的");
 });
