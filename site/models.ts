@@ -52,9 +52,11 @@ export const PRESETS: Record<string, ModelPreset> = {
   "zen-deepseek-v4.1-flash": { service: "opencode", model: "deepseek-v4.1-flash", baseUrlEnv: "LLM_BASE_URL", apiKeyEnv: "LLM_API_KEY", reasoningTokens: 8000, jsonMode: true },
   // 同一个模型、同一个网关，但把推理关掉：给 prefilter / structure / summarize / translate 这类短任务用。
   // 这些步骤不需要"先想再答"，关掉能省下一次调用上千个推理 token；打分和写作用推理的那几个步骤仍走 default。
+  // reasoningTokens 在这里不是"留给推理"的：它给每一步自己的 maxTokens 额外加额度。structure 的上限只有 1200，
+  // 而它要输出的 JSON（分类+标签+主体+事件事实）经常超过这个数 —— 不给额度就是 output token limit reached。
   "zen-deepseek-v4.1-flash-nothink": {
     service: "opencode", model: "deepseek-v4.1-flash", baseUrlEnv: "LLM_BASE_URL", apiKeyEnv: "LLM_API_KEY",
-    extra: { thinking: { type: "disabled" } }, jsonMode: true,
+    extra: { thinking: { type: "disabled" } }, reasoningTokens: 8000, jsonMode: true,
   },
   "zen-glm-5.3-flash": { service: "opencode", model: "glm-5.3-flash", baseUrlEnv: "LLM_BASE_URL", apiKeyEnv: "LLM_API_KEY", reasoningTokens: 8000, jsonMode: true },
   "zen-mimo-v2.6-flash": { service: "opencode", model: "mimo-v2.6-flash", baseUrlEnv: "LLM_BASE_URL", apiKeyEnv: "LLM_API_KEY", reasoningTokens: 8000, jsonMode: true },
@@ -68,9 +70,10 @@ export const PRESETS: Record<string, ModelPreset> = {
   // 同上，但不推理，配给 prefilter / structure / summarize / translate。
   // 实测（2026-10-08）：Command Code **忽略** thinking.type=disabled 和 enable_thinking=false（照样推理），
   // reasoning_effort 直接 400；只有 **-fast 变体** 是真正零推理（推理字符 0）。所以这里换模型，不靠参数。
+  // 同样要给额外输出额度：-fast 变体在 structure 那种长 JSON 上会顶到 1200 的帽子。
   "commandcode-deepseek-v4.1-flash-nothink": {
     service: "commandcode", model: "deepseek/deepseek-v4.1-flash-fast", baseUrlEnv: "COMMANDCODE_BASE_URL", apiKeyEnv: "COMMANDCODE_API_KEY",
-    jsonMode: true,
+    reasoningTokens: 8000, jsonMode: true,
   },
   "mimo-v2.6-flash": {
     service: "mimo", model: "mimo-v2.6-flash", baseUrlEnv: "XIAOMI_MIMO_BASE_URL", apiKeyEnv: "XIAOMI_MIMO_API_KEY",
