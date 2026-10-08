@@ -65,10 +65,12 @@ export const PRESETS: Record<string, ModelPreset> = {
     service: "commandcode", model: "deepseek/deepseek-v4.1-flash", baseUrlEnv: "COMMANDCODE_BASE_URL", apiKeyEnv: "COMMANDCODE_API_KEY",
     reasoningTokens: 8000, jsonMode: true,
   },
-  // 同上，但关掉推理，配给 prefilter / structure / summarize / translate。
+  // 同上，但不推理，配给 prefilter / structure / summarize / translate。
+  // 实测（2026-10-08）：Command Code **忽略** thinking.type=disabled 和 enable_thinking=false（照样推理），
+  // reasoning_effort 直接 400；只有 **-fast 变体** 是真正零推理（推理字符 0）。所以这里换模型，不靠参数。
   "commandcode-deepseek-v4.1-flash-nothink": {
-    service: "commandcode", model: "deepseek/deepseek-v4.1-flash", baseUrlEnv: "COMMANDCODE_BASE_URL", apiKeyEnv: "COMMANDCODE_API_KEY",
-    extra: { thinking: { type: "disabled" } }, jsonMode: true,
+    service: "commandcode", model: "deepseek/deepseek-v4.1-flash-fast", baseUrlEnv: "COMMANDCODE_BASE_URL", apiKeyEnv: "COMMANDCODE_API_KEY",
+    jsonMode: true,
   },
   "mimo-v2.6-flash": {
     service: "mimo", model: "mimo-v2.6-flash", baseUrlEnv: "XIAOMI_MIMO_BASE_URL", apiKeyEnv: "XIAOMI_MIMO_API_KEY",
