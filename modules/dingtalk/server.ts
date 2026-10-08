@@ -32,6 +32,24 @@ const contentEnabled = () => process.env.DINGTALK_CONTENT_PUSH_ENABLED === "true
 const webhook = () => (process.env.DINGTALK_WEBHOOK_URL ?? "").trim();
 const secret = () => (process.env.DINGTALK_SECRET ?? "").trim();
 
+/**
+ * 机器人地址：必须是 https://oapi.dingtalk.com/robot/send?access_token=…
+ * 写坏了（少了 https、前面多了「Webhook:」之类）在这里就说清楚，不要等到 fetch 报 unknown scheme。
+ */
+function webhookUrl(): string {
+  const raw = webhook();
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    throw new Error(`DINGTALK_WEBHOOK_URL 不是合法地址（现在的开头是「${raw.slice(0, 24)}」）。它应该以 https://oapi.dingtalk.com/robot/send?access_token= 开头`);
+  }
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    throw new Error(`DINGTALK_WEBHOOK_URL 的协议是 ${parsed.protocol}，应该是 https://。检查这一行是不是多写了前缀`);
+  }
+  return raw;
+}
+
 /** 加签：把 timestamp 和 HMAC-SHA256(secret, `timestamp\nsecret`) 拼回地址。 */
 function signedWebhook(url: string): string {
   const s = secret();
@@ -46,8 +64,7 @@ function signedWebhook(url: string): string {
 
 /** 钉钉的失败有两种：HTTP 非 2xx，和 HTTP 200 但 errcode 非 0（加签错、关键词不匹配都是后者）。 */
 async function post(payload: Record<string, unknown>): Promise<string> {
-  const url = webhook();
-  if (!url) throw new Error("DINGTALK_WEBHOOK_URL is not configured");
+  const url = webhookUrl();
   const res = await fetch(signedWebhook(url), {
     method: "POST",
     headers: { "content-type": "application/json" },
