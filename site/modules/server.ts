@@ -2,5 +2,6 @@
 import type { ServerModule } from "@aihot/backend/modules";
 import { failover } from "../../modules/failover/server.ts";
 import { dingtalk } from "../../modules/dingtalk/server.ts";
+import { emailSubscribe } from "../../modules/email-subscribe/server.ts";
 
-export const SERVER_MODULES: readonly ServerModule[] = [failover, dingtalk];
+export const SERVER_MODULES: readonly ServerModule[] = [failover, dingtalk, emailSubscribe];

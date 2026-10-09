@@ -86,8 +86,6 @@ export const POLICY = {
     description: "本站网页、RSS、公开 API 与 MCP 的使用规则。",
     /** llms.txt 里对这一页的一句说明（选填）。 */
     covers: null as string | null,
-    /** Agent 接入页的 RSS、API 两栏各自提醒的使用规则（选填）。 */
-    notes: null as null | { rss: string; api: string },
     /**
      * 讲清哪些用途要先取得授权的话（选填）：llms 接在 llms.txt“使用说明”的版权说明后面，
      * agent 写在给 Agent 的使用说明“使用规则”一节的开头。
@@ -178,12 +176,6 @@ export const ADMIN = {
   budgetNote: null as string | null,
 };
 
-/** Agent 接入页的示例。 */
-export const AGENT = {
-  /** MCP 工具表里“搜索”一行：能搜什么、可以怎么问。 */
-  search: { scope: "按公司、产品、人物或话题搜最近 7 天", ask: "这家公司最近发了什么？" },
-};
-
 /** 日报、周报、月报版面上的说法。 */
 export const REPORTS = {
   /** 报头下面的出版者一行。 */
@@ -247,7 +239,6 @@ export const CARDS: Record<string, { kicker: string; title: string; subtitle: st
   privacy: { kicker: "隐私说明", title: `${SITE.name} 隐私说明`, subtitle: "访问日志、浏览器本地数据与反馈资料的处理方式。" },
   changelog: { kicker: "更新日志", title: `${SITE.name} 更新日志`, subtitle: "功能更新、优化、公告与下线记录。" },
   feedback: { kicker: "反馈", title: "告诉我们哪里可以更好", subtitle: "内容、功能、接入，或来源方的更正与下架请求。" },
-  agent: { kicker: "Agent 接入", title: `把 ${SITE.name} 接进你的 Agent`, subtitle: "MCP、RSS、API 三种方式，匿名只读，无需 API Key。" },
 };
 
 /** 公开接口的访问约定里随部署而变的几处：给 Agent 的使用说明、llms.txt 会写。 */

@@ -59,10 +59,7 @@ export function llmsTxt(opts: {
   lines.push(`> ${SITE.description}`, "");
   if (SITE.llmsIntro) lines.push(SITE.llmsIntro, "");
   lines.push("## 给 Agent 的接入方式", "");
-  lines.push(
-    `全部匿名只读、无需 API Key，版本统一为 ${v}。选法和配置见 [Agent 接入页](${u("/agent")})。`
-    + opts.modules.access.join(""),
-  );
+  lines.push(`全部匿名只读、无需 API Key，版本统一为 ${v}。` + opts.modules.access.join(""));
   lines.push("");
   const clients = opts.modules.guideClients.join("、");
   lines.push(

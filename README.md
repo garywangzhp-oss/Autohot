@@ -120,7 +120,7 @@ docker compose up -d --build
 
 机器上没有 Node、服务器在中国大陆、要配域名和 HTTPS，或者不用 Docker、直接在 Linux、macOS 上跑（Windows 用 WSL2），见 [部署](docs/deploy.md)。
 
-站点跑起来后，打开 `/agent` 可以复制 MCP、RSS 或 API 的接入方式；只能读网页的 Agent 从 `/api/v1/agent` 开始；接口说明在 `/openapi-v1.json`。
+只能读网页的 Agent 从 `/api/v1/agent` 开始；MCP 地址是 `/api/mcp`，接口说明在 `/openapi-v1.json`。
 
 ## 把它改成你的行业
 
