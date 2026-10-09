@@ -6,7 +6,7 @@
 // page's code: the page waits for its parts while its own code loads (site-modules.ts `loadParts`) and then
 // renders them like any import.
 import type { ComponentType, ReactNode } from "react";
-import type { TopicSummary } from "@aihot/contracts/site";
+import type { ReportKind, TopicSummary } from "@aihot/contracts/site";
 import type { NavItem, Tab } from "./components/shell/nav";
 
 export interface AdminNavEntry {
@@ -67,6 +67,10 @@ export interface WebModule {
     /** Headers the document's own request to the api carries (the root loader). */
     documentHeaders?: (request: Request) => Record<string, string>;
   };
+  /** The homepage: parts drawn under the desktop search field. */
+  homePage?: Part<ComponentType>;
+  /** Report pages: parts drawn beside the issue time in the masthead. */
+  reportPage?: Part<ComponentType<{ kind: ReportKind }>>;
   topicPage?: Part<TopicPagePart>;
   /** Paths of the marks it serves that are drawn in white, for a dark tile (components/BrandMark.tsx). */
   darkMarks?: string[];

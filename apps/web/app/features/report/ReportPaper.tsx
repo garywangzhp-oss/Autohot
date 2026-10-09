@@ -28,7 +28,7 @@ const LINK = "inline-flex min-h-7 items-center gap-0.5 font-medium transition-co
 /** What comes before `noun` at the end of `phrase` ("往期 AI " of "往期 AI 周报"), so the kind's name is its own text. */
 const before = (phrase: string, noun: string) => phrase.slice(0, -noun.length);
 
-function Masthead({ report, index }: { report: ReportDetail; index: ReportNavigationEntry[] }) {
+function Masthead({ report, index, editionAction }: { report: ReportDetail; index: ReportNavigationEntry[]; editionAction?: ReactNode }) {
   const mark = dateMark(report.kind, report.key);
   const label = KIND_LABEL[report.kind];
   return (
@@ -36,7 +36,10 @@ function Masthead({ report, index }: { report: ReportDetail; index: ReportNaviga
       <div className="flex items-center justify-between gap-4 text-[12px] text-ink-4">
         <span className="num">{dateLine(report.kind, report.key)}</span>
         <span className="hidden tracking-[0.3em] @[640px]:inline">{MOTTO[report.kind]}</span>
-        <span>{EDITION[report.kind]}</span>
+        <span className="inline-flex items-center gap-2">
+          {editionAction}
+          <span>{EDITION[report.kind]}</span>
+        </span>
       </div>
 
       <div className="flex items-stretch justify-between gap-5 py-6 @[880px]:gap-10 @[880px]:py-8">
@@ -445,14 +448,14 @@ export function reportOutline(report: ReportDetail): OutlineEntry[] {
   ];
 }
 
-export function ReportPaper({ report, index }: { report: ReportDetail; index: ReportNavigationEntry[] }) {
+export function ReportPaper({ report, index, editionAction }: { report: ReportDetail; index: ReportNavigationEntry[]; editionAction?: ReactNode }) {
   const daily = report.kind === "daily";
   const leadStory = leadStoryOf(report);
   const pages = pagesOf(report, leadStory);
   const count = pages.reduce((sum, p) => sum + p.items.length, 0) + (leadStory ? 1 : 0);
   return (
     <article className="@container">
-      <Masthead report={report} index={index} />
+      <Masthead report={report} index={index} editionAction={editionAction} />
       {count === 0 && report.flashes.length === 0 ? (
         <p className="py-16 text-center text-[14px] text-ink-4">本期没有入选内容。</p>
       ) : (

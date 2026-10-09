@@ -10,10 +10,12 @@ import { ReportLayout } from "../features/report/ReportLayout";
 import { ReportPaper, reportOutline } from "../features/report/ReportPaper";
 import { KIND_LABEL, feedLink, kindFromPath } from "../features/report/format";
 import type { Screen } from "../components/shell/screens";
+import { loadParts } from "../site-modules";
 
 export const handle: Screen = { tab: "daily", name: "日报" };
 export { shouldRevalidate } from "../lib/page-reuse";
 export const clientLoader = cachedLoader<typeof loader>();
+const REPORT_PARTS = await loadParts((m) => m.reportPage);
 
 const PATTERN: Record<ReportKind, RegExp> = {
   daily: /^\d{4}-\d{2}-\d{2}$/,
@@ -55,7 +57,7 @@ export default function ReportDetailPage() {
   const { report, index, today } = useLoaderData<typeof loader>();
   return (
     <ReportLayout kind={report.kind} index={index} current={report.key} today={today} outline={reportOutline(report)}>
-      <ReportPaper report={report} index={index} />
+      <ReportPaper report={report} index={index} editionAction={report.kind === "daily" ? REPORT_PARTS.map(({ name, part: Subscribe }) => <Subscribe key={name} kind={report.kind} />) : undefined} />
     </ReportLayout>
   );
 }

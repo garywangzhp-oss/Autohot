@@ -1,14 +1,23 @@
-// The email sign-up card. It is mounted once at the bottom of the public site and only draws on the
-// home page and daily report, where a reader is most likely to want the next issue.
-import { useState, type FormEvent } from "react";
-import { useLocation } from "react-router";
+// The email sign-up button and its form. The homepage draws it under the desktop search field; a daily
+// report draws it just before the issue time. Clicking either button opens the same centered dialog.
+import { useEffect, useState, type FormEvent } from "react";
+import type { ReportKind } from "@aihot/contracts/site";
 import { defineWebModule } from "@aihot/web/modules";
+import { Sheet } from "@aihot/web/components/ui/Sheet";
 
+type SubscribeSource = "home" | "daily";
 type SaveState = { kind: "idle" } | { kind: "sending" } | { kind: "success"; already: boolean } | { kind: "error"; message: string };
 
-function SubscribeCard({ source }: { source: "home" | "daily" }) {
+function SubscribeDialog({ open, onClose, source }: { open: boolean; onClose: () => void; source: SubscribeSource }) {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<SaveState>({ kind: "idle" });
+
+  useEffect(() => {
+    if (!open) {
+      setEmail("");
+      setState({ kind: "idle" });
+    }
+  }, [open]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -33,13 +42,11 @@ function SubscribeCard({ source }: { source: "home" | "daily" }) {
   }
 
   return (
-    <section className="mx-auto mt-6 w-full max-w-[640px] px-[var(--gutter-l)] lg:max-w-[var(--page-max-wide)] lg:px-7">
-      <div className="rounded-card border border-line-strong bg-surface p-5 shadow-sm sm:p-6">
-        <div className="text-[17px] font-bold text-ink">订阅汽车热点简报</div>
-        <p className="mt-1.5 max-w-[720px] text-[13px] leading-relaxed text-ink-3">
-          留下邮箱，接收全球汽车行业精选、日报和重要动态。
-        </p>
-        <form className="mt-4 flex flex-col gap-2 sm:flex-row" onSubmit={submit}>
+    <Sheet open={open} onClose={onClose} centered title="订阅汽车热点简报">
+      <div className="px-5 pb-5 sm:px-6">
+        <p className="text-[14px] font-semibold text-accent">新用户可免费体验一个月</p>
+        <p className="mt-2 text-[13px] leading-relaxed text-ink-3">留下邮箱，接收全球汽车行业精选、日报和重要动态。</p>
+        <form className="mt-5 flex flex-col gap-2" onSubmit={submit}>
           <label className="sr-only" htmlFor={`subscribe-email-${source}`}>邮箱</label>
           <input
             id={`subscribe-email-${source}`}
@@ -49,14 +56,14 @@ function SubscribeCard({ source }: { source: "home" | "daily" }) {
             value={email}
             onChange={(event) => { setEmail(event.target.value); if (state.kind === "error") setState({ kind: "idle" }); }}
             placeholder="你的邮箱"
-            className="h-11 min-w-0 flex-1 rounded-full border border-line-strong bg-surface px-4 text-[14px] text-ink outline-none transition-colors placeholder:text-ink-4 focus:border-accent"
+            className="h-11 min-w-0 rounded-full border border-line-strong bg-surface px-4 text-[14px] text-ink outline-none transition-colors placeholder:text-ink-4 focus:border-accent"
           />
           <button
             type="submit"
             disabled={state.kind === "sending"}
-            className="h-11 shrink-0 rounded-full bg-accent px-6 text-[14px] font-medium text-accent-contrast transition-colors hover:bg-accent-ink disabled:opacity-60"
+            className="h-11 rounded-full bg-accent px-6 text-[14px] font-medium text-accent-contrast transition-colors hover:bg-accent-ink disabled:opacity-60"
           >
-            {state.kind === "sending" ? "提交中…" : "订阅"}
+            {state.kind === "sending" ? "提交中…" : "免费订阅"}
           </button>
         </form>
         {state.kind === "success" && (
@@ -67,18 +74,31 @@ function SubscribeCard({ source }: { source: "home" | "daily" }) {
         {state.kind === "error" && <p className="mt-2 text-[12.5px] text-hot">{state.message}</p>}
         <p className="mt-2 text-[12px] text-ink-4">我们只用于发送订阅内容。</p>
       </div>
-    </section>
+    </Sheet>
   );
 }
 
-function SubscribeSlot() {
-  const { pathname } = useLocation();
-  const home = pathname === "/";
-  const daily = pathname === "/daily" || /^\/daily\/\d{4}-\d{2}-\d{2}$/.test(pathname);
-  return home || daily ? <SubscribeCard source={home ? "home" : "daily"} /> : null;
+function SubscribeButton({ source, label, className }: { source: SubscribeSource; label: string; className: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)} className={className}>{label}</button>
+      <SubscribeDialog open={open} onClose={() => setOpen(false)} source={source} />
+    </>
+  );
+}
+
+function HomeSubscribe() {
+  return <SubscribeButton source="home" label="免费订阅" className="self-end rounded-full border border-accent/35 bg-accent-soft px-3.5 py-1.5 text-[12.5px] font-medium text-accent transition-colors hover:bg-accent-softer" />;
+}
+
+function ReportSubscribe({ kind }: { kind: ReportKind }) {
+  if (kind !== "daily") return null;
+  return <SubscribeButton source="daily" label="订阅" className="rounded-full border border-accent/35 bg-accent-soft px-2.5 py-0.5 text-[11px] font-medium text-accent transition-colors hover:bg-accent-softer" />;
 }
 
 export const emailSubscribe = defineWebModule({
   name: "email-subscribe",
-  root: { Bottom: SubscribeSlot },
+  homePage: async () => ({ default: HomeSubscribe }),
+  reportPage: async () => ({ default: ReportSubscribe }),
 });

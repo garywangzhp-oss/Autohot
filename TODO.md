@@ -4,7 +4,7 @@
 
 ## 邮箱订阅（发送、退订和导出）
 
-首页和日报底部已经能收集邮箱：表单提交到 `/api/site/subscribe`，地址保存在 `email_subscriptions`（模块 `modules/email-subscribe/`，迁移 `0058`）。
+首页搜索下方和日报出刊时间旁已经有订阅按钮：点击后打开邮箱弹窗，提交到 `/api/site/subscribe`，地址保存在 `email_subscriptions`（模块 `modules/email-subscribe/`，迁移 `0058`）。
 
 - **未完成**：接入邮件服务商（Resend、SMTP、Buttondown 等），让日报/周报真的发出去。
 - **未完成**：退订链接、订阅确认（可选的双重确认）和管理员查看/导出订阅者。

@@ -8,10 +8,12 @@ import type { Screen } from "../components/shell/screens";
 import { Timeline } from "../features/feed/Timeline";
 import { HotTopics } from "../features/feed/HotTopics";
 import { ActiveFilters, CategoryTabs, FeedBar, SearchField } from "../features/feed/Filters";
+import { loadParts } from "../site-modules";
 
 export const handle: Screen = { tab: "featured", name: "精选" };
 export { shouldRevalidate } from "../lib/page-reuse";
 export const clientLoader = cachedLoader<typeof loader>();
+const HOME_PARTS = await loadParts((m) => m.homePage);
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
@@ -46,7 +48,10 @@ export default function Home() {
         <h1 className="text-[24px] font-semibold leading-[1.3] text-ink">{title}</h1>
         <div className="mb-5 mt-4 flex items-start justify-between gap-4">
           <CategoryTabs base="/" category={filters.category} channel={filters.channel} layoutId="home-cat-desk" className="min-w-0" />
-          <SearchField keep={{ category: filters.category }} />
+          <div className="flex shrink-0 flex-col gap-2">
+            <SearchField keep={{ category: filters.category }} />
+            {HOME_PARTS.map(({ name, part: Subscribe }) => <Subscribe key={name} />)}
+          </div>
         </div>
       </div>
 
