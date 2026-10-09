@@ -6,7 +6,6 @@
 </p>
 
 <p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-176b75?style=flat-square" alt="MIT License"></a>
   <img src="https://img.shields.io/badge/Node.js-24-176b75?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node.js 24">
   <img src="https://img.shields.io/badge/PostgreSQL-17-176b75?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL 17">
   <img src="https://img.shields.io/badge/Docker-Compose-176b75?style=flat-square&logo=docker&logoColor=white" alt="Docker Compose">
@@ -34,7 +33,7 @@
 
 这个仓库是它的引擎和框架：网站、后台、精选流程、聚簇和热度算法，**所有提示词的原文和入选门槛**，都在这里。
 
-## 为什么开源
+## 为什么做这个
 
 这半年，很多做法律、做 HR、做金融、做贵金属的朋友问我，能不能也给他们的行业做一个。
 
@@ -171,15 +170,15 @@ docker compose up -d --build
 
 AIHOT 曾经只是我无数个深夜里，一个很小、很小的念头。
 
-我不知道它会被改成什么样子，会走到多远的地方。但这可能就是开源最浪漫的地方。
+我不知道它会被改成什么样子，会走到多远的地方。但这可能就是把它交给大家最浪漫的地方。
 
 剩下的路，就交给你们了。
 
 <p align="right">—— 数字生命卡兹克</p>
 
-## 许可
+## 来源与许可
 
-代码使用 [MIT 许可证](LICENSE)。AIHOT 的名字和 Logo 不在许可范围内。字体有自己的许可，见 [NOTICE](NOTICE)。
+本仓库是 AIHOT 的定制分支。原始 AIHOT 项目的版权和许可说明见其上游仓库；本仓库不额外授予使用许可。品牌和第三方素材说明见 [NOTICE](NOTICE)。
 
 ---
 

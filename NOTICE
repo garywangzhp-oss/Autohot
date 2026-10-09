@@ -1,8 +1,12 @@
 AIHOT
-Copyright (c) 2026 数字生命卡兹克. The code is licensed under the MIT License (LICENSE).
+Copyright (c) 2026 数字生命卡兹克.
 
-The name "AIHOT" and the AIHOT logo are not licensed under the MIT License. Please use your own name
-and logo for your site.
+This repository is a customized fork of AIHOT. The original AIHOT project and its upstream
+repository retain their own copyright and license notices. This fork does not grant an additional
+license for its own changes, name, or logo.
+
+The name "AIHOT" and the AIHOT logo are not licensed for reuse. Please use your own name and logo
+for your site.
 
 This repository also contains third-party material under its own terms:
 
