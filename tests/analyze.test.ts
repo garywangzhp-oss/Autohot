@@ -16,6 +16,7 @@ import { QUEUES, stopBoss } from "@aihot/backend/jobs/queue";
 import { compactAnswerFirstSummary, enforceIdentity, MAX_BODY_CHARS, parseTranslateOutput } from "@aihot/backend/editorial/writing";
 import { promptText } from "@aihot/backend/editorial/prompts";
 import { SITE } from "@aihot/site";
+import { SELECTION } from "@aihot/industry/selection";
 
 const T = tag();
 const SOURCE = `test-analyze-${T}`;
@@ -76,6 +77,16 @@ const calls = (marker: string) => requests.filter((r) => r.marker === marker).ma
 const row = async (id: string) =>
   (await sql<{ selected: boolean; relevance: string; score: string | null; title_zh: string; reason_zh: string | null; category: string | null; tags: string[]; subjects: string[]; receipt_ids: string[]; output: Record<string, any> }[]>`
     SELECT selected, relevance, score, title_zh, reason_zh, category, tags, subjects, receipt_ids, output FROM analyses WHERE article_id = ${id} ORDER BY id DESC LIMIT 1`)[0]!;
+
+test("the 40-point minimum is a hard floor for every tier and model", () => {
+  for (const [model, tiers] of Object.entries(SELECTION.byModel)) {
+    for (const [tier, calibrated] of Object.entries(tiers)) {
+      assert.equal(tierThreshold(tier, model), Math.max(calibrated, SELECTION.minimumScore), `${model} / ${tier}`);
+      assert.ok(tierThreshold(tier, model)! >= SELECTION.minimumScore, `${model} / ${tier}`);
+    }
+  }
+  assert.equal(tierThreshold("unknown", SCORING_MODEL_ID), null, "tiers outside the pack still do not enter selection");
+});
 
 test("every prompt in the pack renders, with the site's own name", () => {
   const dir = new URL("../industry/prompts/", import.meta.url);

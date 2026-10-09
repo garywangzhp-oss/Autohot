@@ -52,7 +52,8 @@ export const SCORE_CALLS = 2;
 export function tierThreshold(tier: string, model?: string | null): number | null {
   // 分数尺度跟模型绑定：先看这个模型自己的门槛（模型 id），再退回默认。
   const byModel = model ? SELECTION.byModel[model] : undefined;
-  return byModel?.[tier] ?? SELECTION.thresholds[tier] ?? null;
+  const calibrated = byModel?.[tier] ?? SELECTION.thresholds[tier] ?? null;
+  return calibrated === null ? null : Math.max(calibrated, SELECTION.minimumScore);
 }
 
 /** Unselected items above this mean are written like selected ones. */
