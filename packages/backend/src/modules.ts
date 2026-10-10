@@ -190,6 +190,28 @@ export interface RequestNotices {
   feed: (req: FastifyRequest, feedPath: string) => FeedNotice | null;
 }
 
+/**
+ * A completed article's scores, given to a module's score-gate shadow after the normal analysis is
+ * committed. The shadow sees the first score as its decision input and the final scores only as
+ * labels for evaluating it; it must never change what the engine selected.
+ */
+export interface ScoreGateShadowInput {
+  articleId: string;
+  revision: number;
+  title: string;
+  material: string;
+  source: { name: string; kind: string; tier: string; firstParty: boolean };
+  scoreModel: string;
+  threshold: number;
+  scorePromptVersion: string;
+  /** The scores actually produced by the normal run, in call order. */
+  scores: number[];
+  /** The reader-facing mean score, floored (normalizeAnalysis's score). */
+  score: number | null;
+  /** What the score-only rule decided; final publication also has relevance and grouping gates. */
+  selectedByScore: boolean;
+}
+
 export interface ServerModule {
   /** Its folder under modules/. */
   name: string;
@@ -197,6 +219,8 @@ export interface ServerModule {
   http?: (app: FastifyInstance) => void;
   /** Run before the api process exits, to flush what it buffers (apps/api/src/main.ts). */
   stop?: () => Promise<void>;
+  /** Runs after an article's normal scores are committed; a shadow-only decision record. */
+  selectionGateShadow?: (input: ScoreGateShadowInput) => Promise<void>;
   agent?: {
     abilities?: AgentAbility[];
     /** The guide's "目前查不到的" list, after the engine's first entry. */

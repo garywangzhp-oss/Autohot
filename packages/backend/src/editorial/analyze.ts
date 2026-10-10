@@ -12,6 +12,8 @@ import { CATEGORY_KEYS } from "@aihot/contracts/taxonomy";
 import { CATEGORIES } from "@aihot/industry/taxonomy";
 import { SELECTION } from "@aihot/industry/selection";
 import { sql } from "../db.ts";
+import { serverModules, type ScoreGateShadowInput } from "../modules.ts";
+import { logError } from "../lib/log-error.ts";
 import { chatJson, MODELS, ModelOutputError, type ContentPart } from "../providers/llm.ts";
 import { completeReceipt, ProviderRejectedError, ReceiptUnknownError } from "../providers/receipts.ts";
 import { collapseWhitespace } from "../lib/text.ts";
@@ -520,5 +522,32 @@ export async function analyzeArticle(articleId: string, opts: StepOpts = {}): Pr
     return { analysisId: row!.id, stale };
   });
   const reused = run.prefilter.reused && (run.scores?.reused ?? true) && (w?.reused ?? true) && (run.structure?.reused ?? true);
+  // Shadow gates run after the normal result is committed. They receive the first score as the only
+  // decision input; the later scores are labels used to evaluate the gate and must not affect it.
+  if (!committed.stale && out.scoreModel && out.threshold !== null && out.scores && out.scores.length > 0) {
+    const body = collapseWhitespace(input.bodyText ?? input.xPost?.text ?? input.translationZh ?? input.excerpt ?? "");
+    const material = [input.title, input.excerpt ?? "", body].filter(Boolean).join("\n\n").slice(0, 4000);
+    const shadow: ScoreGateShadowInput = {
+      articleId,
+      revision: input.revision,
+      title: input.title,
+      material,
+      source: { name: input.source.name, kind: input.source.kind, tier: input.source.tier, firstParty: input.source.firstParty },
+      scoreModel: out.scoreModel,
+      threshold: out.threshold,
+      scorePromptVersion: PROMPT_VERSIONS.score,
+      scores: out.scores,
+      score: out.score,
+      selectedByScore: out.scores.length === SCORE_CALLS && out.scores.reduce((total, value) => total + value, 0) >= out.threshold * SCORE_CALLS,
+    };
+    for (const m of serverModules()) {
+      if (!m.selectionGateShadow) continue;
+      try {
+        await m.selectionGateShadow(shadow);
+      } catch (error) {
+        console.error(JSON.stringify({ level: "error", msg: "selection gate shadow failed", module: m.name, article: `${articleId}@${input.revision}`, error: logError(error) }));
+      }
+    }
+  }
   return { analysisId: committed.analysisId, stale: committed.stale, output: out, receiptIds, reused };
 }
