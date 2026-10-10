@@ -1,4 +1,4 @@
-// JEV (TypeSafe AI System One) shadow score gate.
+// JEV (TypeSafe AI System One, called through Command Code) shadow score gate.
 //
 // The normal two-score analysis runs exactly as before. After it commits, this module asks JEV what it
 // would have decided from the first score alone, then stores both the decision and the real second score
@@ -6,9 +6,9 @@
 //
 // Configuration:
 //   JEV_SHADOW_ENABLED=true
-//   TYPESAFE_API_KEY=...
-//   JEV_MODEL=jev-1.13.0              optional
-//   TYPESAFE_BASE_URL=https://api.typesafe.ai  optional
+//   COMMANDCODE_API_KEY=...           existing Command Code key
+//   COMMANDCODE_BASE_URL=...          optional; defaults to https://api.commandcode.ai/provider/v1
+//   JEV_MODEL=typesafe/jev            optional
 import { sql } from "@aihot/backend/db";
 import { logError } from "@aihot/backend/lib/log-error";
 import { defineServerModule, type ScoreGateShadowInput } from "@aihot/backend/modules";
@@ -16,9 +16,9 @@ import type { Finding } from "@aihot/backend/notify/feishu";
 import { assertAccepted, completeReceipt, paidRequest, ReceiptUnknownError } from "@aihot/backend/providers/receipts";
 
 const enabled = () => process.env.JEV_SHADOW_ENABLED === "true";
-const apiKey = () => (process.env.TYPESAFE_API_KEY ?? process.env.JEV_API_KEY ?? "").trim();
-const baseUrl = () => (process.env.TYPESAFE_BASE_URL ?? process.env.JEV_BASE_URL ?? "https://api.typesafe.ai").replace(/\/$/, "");
-const model = () => (process.env.JEV_MODEL ?? "jev-1.13.0").trim();
+const apiKey = () => (process.env.COMMANDCODE_API_KEY ?? process.env.JEV_API_KEY ?? "").trim();
+const baseUrl = () => (process.env.COMMANDCODE_BASE_URL ?? process.env.JEV_BASE_URL ?? "https://api.commandcode.ai/provider/v1").replace(/\/$/, "");
+const model = () => (process.env.JEV_MODEL ?? "typesafe/jev").trim();
 const timeoutMs = () => Math.max(1000, Number(process.env.JEV_SHADOW_TIMEOUT_MS ?? 8000) || 8000);
 const dailyLimit = () => Math.max(0, Number(process.env.JEV_SHADOW_DAILY_LIMIT ?? 2000) || 0);
 
@@ -114,12 +114,12 @@ export async function runJevShadow(input: ScoreGateShadowInput): Promise<void> {
   await writePending(input);
   const key = apiKey();
   if (!key) {
-    await writeResult(input, { status: "failed", error: "TYPESAFE_API_KEY (or JEV_API_KEY) is not configured" });
+    await writeResult(input, { status: "failed", error: "COMMANDCODE_API_KEY (or JEV_API_KEY) is not configured" });
     return;
   }
   const limit = dailyLimit();
   if (limit > 0) {
-    const [used] = await sql<{ n: number }[]>`SELECT count(*)::int AS n FROM receipt_attempts WHERE service = 'typesafe' AND origin = 'live' AND started_at > now() - interval '1 day'`;
+    const [used] = await sql<{ n: number }[]>`SELECT count(*)::int AS n FROM receipt_attempts a JOIN receipts r ON r.id = a.receipt_id WHERE a.service = 'commandcode' AND r.purpose = 'selection_gate_shadow' AND a.origin = 'live' AND a.started_at > now() - interval '1 day'`;
     if (used!.n >= limit) {
       await writeResult(input, { status: "failed", error: `JEV_SHADOW_DAILY_LIMIT=${limit} reached` });
       return;
@@ -141,7 +141,7 @@ export async function runJevShadow(input: ScoreGateShadowInput): Promise<void> {
 
   try {
     const receipt = await paidRequest({
-      service: "typesafe",
+      service: "commandcode",
       model: model(),
       purpose: "selection_gate_shadow",
       subject: `article:${input.articleId}@${input.revision}:jev-shadow`,
@@ -152,19 +152,19 @@ export async function runJevShadow(input: ScoreGateShadowInput): Promise<void> {
       },
       attemptTag: "jev-shadow-v1",
     }, async () => {
-      const response = await fetch(`${baseUrl()}/v1/systemone`, {
+      const response = await fetch(`${baseUrl()}/systemone`, {
         method: "POST",
         headers: { authorization: `Bearer ${key}`, "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify(payload),
         signal: AbortSignal.timeout(timeoutMs()),
       });
       const text = await response.text();
-      assertAccepted("typesafe", response.status, text);
+      assertAccepted("commandcode", response.status, text);
       let json: Record<string, unknown>;
       try {
         json = JSON.parse(text) as Record<string, unknown>;
       } catch {
-        throw new Error(`typesafe returned non-JSON: ${text.slice(0, 300)}`);
+        throw new Error(`commandcode returned non-JSON: ${text.slice(0, 300)}`);
       }
       return { response: json, requestId: response.headers.get("x-request-id"), usage: (json.usage as Record<string, unknown> | undefined) ?? null, cost: null };
     });
@@ -199,7 +199,7 @@ export const jevShadow = defineServerModule({
         title: "JEV 影子运行开着，但没配 API Key",
         impact: "JEV 不会产生影子记录，现有精选流程不受影响",
         heals: "不会",
-        action: "在 .env 里填 TYPESAFE_API_KEY，然后重启 worker",
+        action: "在 .env 里填 COMMANDCODE_API_KEY，然后重启 worker",
         owner: true,
       }]
     : [],

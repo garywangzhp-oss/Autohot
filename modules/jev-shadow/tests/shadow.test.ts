@@ -18,6 +18,7 @@ test("the JEV shadow gate records its decision and the real two-score outcome", 
       questions: { gate: { type: string }; final_selected: { type: string } };
     };
     assert.equal(body.model, "jev-test");
+    assert.equal(req.url, "/provider/v1/systemone");
     assert.equal(body.state.first_score, 52);
     assert.equal(body.state.threshold, 40);
     assert.equal(body.state.source.tier, "T2");
@@ -28,8 +29,8 @@ test("the JEV shadow gate records its decision and the real two-score outcome", 
   });
 
   process.env.JEV_SHADOW_ENABLED = "true";
-  process.env.TYPESAFE_API_KEY = "test-key";
-  process.env.TYPESAFE_BASE_URL = provider.url;
+  process.env.COMMANDCODE_API_KEY = "test-key";
+  process.env.COMMANDCODE_BASE_URL = `${provider.url}/provider/v1`;
   process.env.JEV_MODEL = "jev-test";
   try {
     await runJevShadow({
