@@ -20,6 +20,7 @@ const apiKey = () => (process.env.TYPESAFE_API_KEY ?? process.env.JEV_API_KEY ??
 const baseUrl = () => (process.env.TYPESAFE_BASE_URL ?? process.env.JEV_BASE_URL ?? "https://api.typesafe.ai").replace(/\/$/, "");
 const model = () => (process.env.JEV_MODEL ?? "jev-1.13.0").trim();
 const timeoutMs = () => Math.max(1000, Number(process.env.JEV_SHADOW_TIMEOUT_MS ?? 8000) || 8000);
+const dailyLimit = () => Math.max(0, Number(process.env.JEV_SHADOW_DAILY_LIMIT ?? 2000) || 0);
 
 const QUESTIONS = {
   gate: {
@@ -115,6 +116,14 @@ export async function runJevShadow(input: ScoreGateShadowInput): Promise<void> {
   if (!key) {
     await writeResult(input, { status: "failed", error: "TYPESAFE_API_KEY (or JEV_API_KEY) is not configured" });
     return;
+  }
+  const limit = dailyLimit();
+  if (limit > 0) {
+    const [used] = await sql<{ n: number }[]>`SELECT count(*)::int AS n FROM receipt_attempts WHERE service = 'typesafe' AND origin = 'live' AND started_at > now() - interval '1 day'`;
+    if (used!.n >= limit) {
+      await writeResult(input, { status: "failed", error: `JEV_SHADOW_DAILY_LIMIT=${limit} reached` });
+      return;
+    }
   }
 
   const payload = {
