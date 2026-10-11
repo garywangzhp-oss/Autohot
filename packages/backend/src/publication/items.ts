@@ -12,6 +12,7 @@ export interface ItemRow {
   id: string;
   title: string;
   original_title: string | null;
+  original_summary: string | null;
   summary: string | null;
   reason: string | null;
   category: string | null;
@@ -44,7 +45,7 @@ export interface ItemRow {
 
 /** Columns every item listing selects. Internal judgement details never leave this layer. */
 export const ITEM_COLUMNS = sql`
-  p.article_id AS id, p.title, p.original_title, p.summary, p.reason, p.category, p.tags, p.score,
+  p.article_id AS id, p.title, p.original_title, a.excerpt AS original_summary, p.summary, p.reason, p.category, p.tags, p.score,
   p.selected, p.seat, p.channel, p.url, p.published_at, p.discovered_at, p.timeline_at, p.visibility,
   p.body_mode, p.indexable, p.fact_id, s.name AS source_name, s.participation_mode AS source_mode,
   a.x_post, a.author, a.language,
@@ -169,12 +170,13 @@ export function toFeedItemSummary(row: ItemRow): FeedItemSummary {
   const item = toItemSummary(row);
   const x = showsPost(row) ? xView(row, true) : null;
   return {
-    id: item.id, title: item.title, summary: item.summary, reason: item.reason,
+    id: item.id, title: item.title, originalTitle: item.originalTitle, originalSummary: row.original_summary,
+    summary: item.summary, reason: item.reason,
     source: item.source, publishedAt: item.publishedAt, timelineAt: item.timelineAt,
     category: item.category, tags: item.tags, score: item.score, selected: item.selected, channel: item.channel,
     x: x ? {
       authorName: x.authorName, handle: x.handle, avatarUrl: x.avatarUrl,
-      ...(x.avatarSrcSet ? { avatarSrcSet: x.avatarSrcSet } : {}), media: x.media,
+      ...(x.avatarSrcSet ? { avatarSrcSet: x.avatarSrcSet } : {}), media: x.media, text: x.text,
       quoted: x.quoted ? { authorName: x.quoted.authorName, handle: x.quoted.handle, text: x.quoted.text, translation: x.quoted.translation } : null,
     } : null,
   };

@@ -9,11 +9,12 @@ import { monthDayTime } from "../../lib/format";
 import { isReload } from "../../lib/restore";
 import { listPath, filterParams } from "../../lib/seo";
 import { sessionCache } from "../../lib/session-cache";
+import { FEED_TEXT, useFeedLanguage } from "./Language";
 
 const reportsUrl = (factId: string, filters: TimelineFilters | undefined) =>
   listPath(`/api/site/groups/${encodeURIComponent(factId)}/reports`, filters ? filterParams(filters) : {});
 
-const labelOf = (group: GroupInfo) => (group.additionalSourceCount > 0 ? `另有 ${group.additionalSourceCount} 家信源报道` : `${group.reportCount} 篇报道`);
+const labelOf = (group: GroupInfo, english: boolean) => (group.additionalSourceCount > 0 ? (english ? `${group.additionalSourceCount} more sources` : `另有 ${group.additionalSourceCount} 家信源报道`) : (english ? `${group.reportCount} reports` : `${group.reportCount} 篇报道`));
 
 // The groups left open in each history entry, with what they showed (null: still loading): back from an
 // item finds them open again. In memory for back within the app; in session storage for a page the
@@ -84,13 +85,17 @@ function Panel({ open, children }: { open: boolean; children: ReactNode }) {
 }
 
 function LoadState({ loading, error, onRetry, empty }: { loading: boolean; error: boolean; onRetry: () => void; empty: boolean }) {
+  const lang = useFeedLanguage();
+  const t = FEED_TEXT[lang];
   if (loading && empty) return <div className="space-y-2 py-1">{[0, 1].map((i) => <div key={i} className="skeleton h-4" />)}</div>;
-  if (error) return <button type="button" onClick={onRetry} className="min-h-11 py-1 text-[12.5px] text-hot lg:min-h-0">暂时无法加载，点此重试</button>;
+  if (error) return <button type="button" onClick={onRetry} className="min-h-11 py-1 text-[12.5px] text-hot lg:min-h-0">{lang === "en" ? "Temporarily unavailable — retry" : "暂时无法加载，点此重试"}</button>;
   return null;
 }
 
 /** "另有 N 家信源报道": the other reports of the fact the card stands for, behind a toggle. */
 export function GroupSources({ group, filters, parentId }: { group: GroupInfo; filters?: TimelineFilters; parentId: string }) {
+  const lang = useFeedLanguage();
+  const english = lang === "en";
   const entry = useLocation().key;
   const key = `${group.factId}|${parentId}`;
   const saved = openGroups.peek(entry)?.groups[key];
@@ -121,7 +126,7 @@ export function GroupSources({ group, filters, parentId }: { group: GroupInfo; f
           if (!open && !reports.reports && !reports.loading) void reports.load();
         }}
       >
-        {labelOf(group)}
+        {labelOf(group, english)}
       </Toggle>
       <Panel open={open}>
         <ul className="divide-y divide-line-soft">
@@ -131,7 +136,7 @@ export function GroupSources({ group, filters, parentId }: { group: GroupInfo; f
               <Link viewTransition to={`/items/${r.id}`} className="min-w-0 flex-1 truncate text-ink-2 hover:text-accent">
                 {r.title}
               </Link>
-              <a href={r.originalUrl} target="_blank" rel="noopener noreferrer" aria-label="打开原文" className="shrink-0 text-ink-4 hover:text-accent">
+              <a href={r.originalUrl} target="_blank" rel="noopener noreferrer" aria-label={english ? "Open original" : "打开原文"} className="shrink-0 text-ink-4 hover:text-accent">
                 <IconArrowUpRight size={13} />
               </a>
             </li>
@@ -145,6 +150,8 @@ export function GroupSources({ group, filters, parentId }: { group: GroupInfo; f
 
 /** Phones: the same duplicate reports as the desktop expansion. */
 export function GroupButton({ group, filters, parentId }: { group: GroupInfo; filters?: TimelineFilters; parentId: string }) {
+  const lang = useFeedLanguage();
+  const english = lang === "en";
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   return (
@@ -161,7 +168,7 @@ export function GroupButton({ group, filters, parentId }: { group: GroupInfo; fi
         aria-haspopup="dialog"
         className="relative z-10 mt-2 flex min-h-11 w-full items-center justify-between rounded-tile bg-bg-sunk px-3 py-2 text-left text-[12.5px] text-ink-4 transition-colors active:bg-bg-muted lg:hidden dark:bg-bg-muted/60 dark:active:bg-bg-muted"
       >
-        {labelOf(group)}
+        {labelOf(group, english)}
         <IconChevronRight size={14} />
       </button>
       {mounted && <GroupSheet open={open} onClose={() => setOpen(false)} group={group} filters={filters} parentId={parentId} />}
@@ -176,13 +183,14 @@ function GroupSheet({ open, onClose, group, filters, parentId }: {
   filters?: TimelineFilters;
   parentId: string;
 }) {
+  const lang = useFeedLanguage();
   const reports = useReports(reportsUrl(group.factId, filters));
   useEffect(() => {
     if (open && !reports.reports && !reports.loading && !reports.error) void reports.load();
   }, [open]);
   const others = (reports.reports ?? []).filter((r) => r.id !== parentId);
   return (
-    <Sheet open={open} onClose={onClose} title="同一新闻的其他报道">
+    <Sheet open={open} onClose={onClose} title={lang === "en" ? "Other reports of this story" : "同一新闻的其他报道"}>
       <div className="px-5">
         <ul className="divide-y divide-line-soft">
           {others.map((r) => (
@@ -193,7 +201,7 @@ function GroupSheet({ open, onClose, group, filters, parentId }: {
                 </span>
                 <span className="mt-0.5 line-clamp-2 text-[15px] leading-[1.5] text-ink-2">{r.title}</span>
               </Link>
-              <a href={r.originalUrl} target="_blank" rel="noopener noreferrer" aria-label="打开原文" className="-mr-2 grid size-11 shrink-0 place-items-center rounded-full text-ink-4 active:bg-bg-sunk">
+              <a href={r.originalUrl} target="_blank" rel="noopener noreferrer" aria-label={lang === "en" ? "Open original" : "打开原文"} className="-mr-2 grid size-11 shrink-0 place-items-center rounded-full text-ink-4 active:bg-bg-sunk">
                 <IconArrowUpRight size={16} />
               </a>
             </li>

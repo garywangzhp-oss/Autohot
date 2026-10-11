@@ -16,20 +16,20 @@ export function shownScore(score: number | null): number | null {
 }
 
 /** "AI 评分 · 88" on desktop cards; `compact` keeps only the number (phones). */
-export function ScoreLabel({ score, compact = false }: { score: number | null; compact?: boolean }) {
+export function ScoreLabel({ score, compact = false, english = false }: { score: number | null; compact?: boolean; english?: boolean }) {
   const shown = shownScore(score);
   if (shown === null) return null;
   const value = Math.round(shown);
   const tier = TIERS.find((t) => value >= t.min)!;
   return (
     <span
-      title={`AI 评分 ${value}/100`}
-      aria-label={`AI 评分 ${value} 分`}
+      title={english ? `AI score ${value}/100` : `AI 评分 ${value}/100`}
+      aria-label={english ? `AI score ${value}` : `AI 评分 ${value} 分`}
       className={`inline-flex h-[20px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2 ring-1 ring-inset ${tier.className}`}
     >
       {!compact && (
         <>
-          <span className="text-[11px] font-medium leading-none opacity-80">AI 评分</span>
+          <span className="text-[11px] font-medium leading-none opacity-80">{english ? "AI score" : "AI 评分"}</span>
           <span className="h-2.5 w-px bg-current opacity-25" aria-hidden="true" />
         </>
       )}

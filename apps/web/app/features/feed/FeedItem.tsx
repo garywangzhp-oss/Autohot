@@ -5,7 +5,6 @@ import { memo } from "react";
 import { Link } from "react-router";
 import { IntentLink } from "../../components/ui/IntentLink";
 import type { GroupInfo, FeedItemSummary, TimelineFilters } from "@aihot/contracts/site";
-import { CATEGORY_LABELS } from "@aihot/contracts/taxonomy";
 import { ITEM_COPY } from "@aihot/site";
 import { SameEventBadge, SelectedBadge } from "../../components/ui/Badge";
 import { ScoreLabel } from "../../components/ui/Score";
@@ -14,6 +13,7 @@ import { MediaThumbs, SourceLine, StarButton } from "./parts";
 import { GroupButton, GroupSources } from "./ReadingGroup";
 import { QuotedLine } from "../item/QuotedPost";
 import { rememberPreview } from "../item/preview";
+import { FEED_TEXT, categoryLabel, useFeedLanguage } from "./Language";
 
 export interface FeedItemProps {
   item: FeedItemSummary;
@@ -28,7 +28,12 @@ export interface FeedItemProps {
 }
 
 export const FeedItem = memo(function FeedItem({ item, group, filters, read = false, onOpen, showTags = false, at }: FeedItemProps) {
+  const lang = useFeedLanguage();
+  const t = FEED_TEXT[lang];
+  const english = lang === "en";
   const isX = item.channel === "x" && !!item.x;
+  const title = english ? item.originalTitle || item.title : item.title;
+  const summary = english ? item.originalSummary || item.summary : item.summary;
   const open = () => {
     rememberPreview(item);
     onOpen?.(item.id);
@@ -47,15 +52,15 @@ export const FeedItem = memo(function FeedItem({ item, group, filters, read = fa
         )}
         {item.selected && (
           <span className="hidden lg:inline-flex">
-            {item.sameEvent ? <SameEventBadge /> : <SelectedBadge />}
+            {item.sameEvent ? <SameEventBadge english={english} /> : <SelectedBadge english={english} />}
           </span>
         )}
         <span className="ml-auto flex shrink-0 items-center gap-1 pl-2 lg:gap-1.5">
           <span className="hidden lg:inline-flex">
-            <ScoreLabel score={item.score} />
+            <ScoreLabel score={item.score} english={english} />
           </span>
           <span className="lg:hidden">
-            <ScoreLabel score={item.score} compact />
+            <ScoreLabel score={item.score} compact english={english} />
           </span>
           <span className="-my-[11px] -mr-3 inline-flex lg:-my-1 lg:mr-0">
             <StarButton item={item} className="size-11 lg:size-[26px]" />
@@ -66,17 +71,17 @@ export const FeedItem = memo(function FeedItem({ item, group, filters, read = fa
       {isX ? (
         <p className={`mt-1.5 whitespace-pre-line text-[15px] leading-[1.75] line-clamp-5 lg:mt-2 lg:line-clamp-4 ${read ? "text-ink-4" : "text-ink"}`}>
           <IntentLink viewTransition to={`/items/${item.id}`} onClick={open} className="after:absolute after:inset-0 after:content-['']">
-            {item.summary ?? item.title}
+            {english ? item.x!.text || summary || title : summary ?? title}
           </IntentLink>
         </p>
       ) : (
         <>
           <h3 className={`mt-1.5 line-clamp-2 text-[17px] font-[650] leading-[1.5] lg:mt-2 lg:line-clamp-none lg:leading-[1.55] ${read ? "text-ink-4" : "text-ink"}`}>
             <IntentLink viewTransition to={`/items/${item.id}`} onClick={open} className="after:absolute after:inset-0 after:content-['']">
-              {item.title}
+              {title}
             </IntentLink>
           </h3>
-          {item.summary && <p className="mt-1 line-clamp-2 text-[14.5px] leading-[1.7] text-ink-3 lg:mt-2 lg:line-clamp-3 lg:text-[15px] lg:leading-[1.75]">{item.summary}</p>}
+          {summary && <p className="mt-1 line-clamp-2 text-[14.5px] leading-[1.7] text-ink-3 lg:mt-2 lg:line-clamp-3 lg:text-[15px] lg:leading-[1.75]">{summary}</p>}
         </>
       )}
 
@@ -87,7 +92,7 @@ export const FeedItem = memo(function FeedItem({ item, group, filters, read = fa
         <div className="relative z-10 mt-2 hidden flex-wrap gap-x-2.5 gap-y-1 text-[12px] text-ink-4 lg:flex">
           {showTags && item.category && (
             <Link to={`/all?category=${item.category}`} className="hover:text-accent">
-              {CATEGORY_LABELS[item.category]}
+              {categoryLabel(lang, item.category)}
             </Link>
           )}
           {tags.map((t) => (
@@ -100,7 +105,7 @@ export const FeedItem = memo(function FeedItem({ item, group, filters, read = fa
 
       {item.sameEvent && (
         <p className="relative z-10 mt-2 line-clamp-1 text-[12.5px] text-ink-4">
-          同一新闻，精选展示
+          {t.sameNews}
           <Link viewTransition to={`/items/${item.sameEvent.id}`} className="text-ink-3 transition-colors hover:text-accent">
             《{item.sameEvent.title}》
           </Link>
@@ -114,7 +119,7 @@ export const FeedItem = memo(function FeedItem({ item, group, filters, read = fa
 
       {item.reason && (
         <div className="mt-1 lg:mt-3 lg:border-t lg:border-line-soft lg:pt-3">
-          <p className="line-clamp-1 text-[13px] leading-[1.65] text-note lg:line-clamp-none lg:leading-[1.75]">{`${ITEM_COPY.reasonLabel}：`}{item.reason}</p>
+          <p className="line-clamp-1 text-[13px] leading-[1.65] text-note lg:line-clamp-none lg:leading-[1.75]">{`${english ? t.reason : ITEM_COPY.reasonLabel}：`}{item.reason}</p>
         </div>
       )}
 

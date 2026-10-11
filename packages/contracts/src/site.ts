@@ -58,7 +58,13 @@ export interface ItemSummary {
 
 /** The fields rendered by a site feed card; full original text lives in the item detail. */
 export interface FeedItemSummary extends Pick<ItemSummary, "id" | "title" | "summary" | "reason" | "source" | "publishedAt" | "timelineAt" | "category" | "tags" | "score" | "selected" | "channel"> {
+  /** The source-language title, when the published title is the Chinese rewrite. */
+  originalTitle?: string | null;
+  /** The source-language summary, when the published summary is the Chinese rewrite. */
+  originalSummary?: string | null;
   x: (Pick<XPostView, "authorName" | "handle" | "avatarUrl" | "avatarSrcSet" | "media"> & {
+    /** The post's original text, for the homepage's original-language mode. */
+    text: string;
     quoted: Omit<NonNullable<XPostView["quoted"]>, "url"> | null;
   }) | null;
   /**
