@@ -75,6 +75,15 @@ test("report publication and its receipt commit together and recovery reuses the
   assert.equal((await sql`SELECT status FROM receipts WHERE subject = 'report:weekly:2024-W18'`)[0]!.status, "completed");
 });
 
+test("a period before the first daily is skipped instead of failing every half hour", async () => {
+  await item("2024-02-02");
+  const result = await composeDueReports(editionAt("daily", "2024-02-02", 3600));
+  assert.deepEqual(result.failed, []);
+  assert.equal(await report("monthly", "2024-01"), undefined, "no January dailies means no January monthly");
+  assert.equal(await report("weekly", "2024-W04"), undefined, "no W04 dailies means no W04 weekly");
+  assert.ok(await report("daily", "2024-02-02"), "the due daily is still written");
+});
+
 test("empty older gaps cannot starve a later daily, weekly or monthly, and failures remain visible", async () => {
   // An older issue carried an item; the days after it are empty. Weeklies and monthlies are compiled from dailies.
   const early = await item("2024-01-23");

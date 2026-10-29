@@ -270,12 +270,6 @@ export function dueMonthly(now = new Date()): string {
   return `${Math.floor(month / 12)}-${String((month % 12) + 1).padStart(2, "0")}`;
 }
 
-const nextWeek = (label: string) => isoWeekLabel(addDays(isoWeekRange(label)!.start, 7));
-const nextMonth = (label: string) => {
-  const [y, m] = label.split("-").map(Number) as [number, number];
-  return m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
-};
-
 /**
  * The scheduled run (every half hour): every issue due by `now` that does not exist yet, oldest first.
  * The newest one appears at the first run after it falls due (above); a long stop or an older gap is
@@ -285,15 +279,29 @@ const nextMonth = (label: string) => {
 export async function composeDueReports(now = new Date(), limit = 8): Promise<{ generated: string[]; failed: string[] }> {
   const generated: string[] = [];
   const failed: string[] = [];
-  const kinds: Array<{ kind: ReportKind; due: string; next: (k: string) => string; compose: (k: string) => Promise<unknown> }> = [
-    { kind: "daily", due: dueDaily(now), next: (k) => addDays(k, 1), compose: composeDaily },
-    { kind: "weekly", due: dueWeekly(now), next: nextWeek, compose: composeWeekly },
-    { kind: "monthly", due: dueMonthly(now), next: nextMonth, compose: composeMonthly },
+  // Weekly and monthly issues are compiled from dailies. A period before the site had any daily
+  // report is not an empty issue to retry every half hour; it is a period with nothing to compile.
+  const dailyKeys = (await sql<{ key: string }[]>`SELECT key FROM reports WHERE kind = 'daily' ORDER BY key`).map((r) => r.key);
+  const periods = {
+    weekly: [...new Set(dailyKeys.map((key) => isoWeekLabel(key)))].sort(),
+    monthly: [...new Set(dailyKeys.map((key) => key.slice(0, 7)))].sort(),
+  } as const;
+  const kinds: Array<{ kind: ReportKind; due: string; compose: (k: string) => Promise<unknown>; keys?: readonly string[] }> = [
+    { kind: "daily", due: dueDaily(now), compose: composeDaily },
+    { kind: "weekly", due: dueWeekly(now), compose: composeWeekly, keys: periods.weekly },
+    { kind: "monthly", due: dueMonthly(now), compose: composeMonthly, keys: periods.monthly },
   ];
   kinds: for (const k of kinds) {
     const have = new Set((await sql<{ key: string }[]>`SELECT key FROM reports WHERE kind = ${k.kind}`).map((r) => r.key));
-    const first = [...have].sort()[0] ?? k.due;
-    for (let key = first; key <= k.due; key = k.next(key)) {
+    const keys = k.keys
+      ? k.keys.filter((key) => key <= k.due)
+      : (() => {
+          const first = [...have].sort()[0] ?? k.due;
+          const out: string[] = [];
+          for (let key = first; key <= k.due; key = addDays(key, 1)) out.push(key);
+          return out;
+        })();
+    for (const key of keys) {
       if (have.has(key)) continue;
       if (shutdownSignal.signal.aborted || generated.length >= limit) break kinds;
       try {
