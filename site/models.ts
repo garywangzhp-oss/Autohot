@@ -49,7 +49,7 @@ export const PRESETS: Record<string, ModelPreset> = {
     extra: { enable_thinking: false }, jsonMode: true,
   },
   // OpenCode Zen 网关上的模型：共用 LLM_BASE_URL / LLM_API_KEY，模型名各不相同。
-  "zen-deepseek-v4.1-flash": { service: "opencode", model: "deepseek-v4.1-flash", baseUrlEnv: "LLM_BASE_URL", apiKeyEnv: "LLM_API_KEY", reasoningTokens: 8000, jsonMode: true },
+  "zen-deepseek-v4.1-flash": { service: "opencode", model: "deepseek-v4.1-flash", baseUrlEnv: "LLM_BASE_URL", apiKeyEnv: "LLM_API_KEY", reasoningTokens: 16000, jsonMode: true },
   // 同一个模型、同一个网关，但把推理关掉：给 prefilter / structure / summarize / translate 这类短任务用。
   // 这些步骤不需要"先想再答"，关掉能省下一次调用上千个推理 token；打分和写作用推理的那几个步骤仍走 default。
   // reasoningTokens 在这里不是"留给推理"的：它给每一步自己的 maxTokens 额外加额度。structure 的上限只有 1200，
@@ -65,7 +65,7 @@ export const PRESETS: Record<string, ModelPreset> = {
   // 所以切过去不用重新校准精选门槛——同一个底层模型，分数尺一样。密钥走 COMMANDCODE_API_KEY。
   "commandcode-deepseek-v4.1-flash": {
     service: "commandcode", model: "deepseek/deepseek-v4.1-flash", baseUrlEnv: "COMMANDCODE_BASE_URL", apiKeyEnv: "COMMANDCODE_API_KEY",
-    reasoningTokens: 8000, jsonMode: true,
+    reasoningTokens: 16000, jsonMode: true,
   },
   // 同上，但不推理，配给 prefilter / structure / summarize / translate。
   // 实测（2026-10-08）：Command Code **忽略** thinking.type=disabled 和 enable_thinking=false（照样推理），
