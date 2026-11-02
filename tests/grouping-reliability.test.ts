@@ -19,8 +19,12 @@ import { publishArticle } from "@aihot/backend/publication/publish";
 const T = tag();
 const sourceId = `group-reliability-${T}`;
 let response: "complete" | "missing" = "complete";
+let truncateMimo = false;
 const provider = await stub((_hit, request) => {
   const body = JSON.parse(request.body);
+  if (truncateMimo && body.model === "mimo-v2.6-flash") {
+    return { choices: [{ finish_reason: "length", message: { content: "" } }] };
+  }
   const text = body.messages[1].content as string;
   if (text.includes("【报道 A】")) return { choices: [{ message: { content: JSON.stringify({ a: "发布", b: "发布", relation: "SAME_OCCURRENCE", difference: "", confidence: 1 }) } }] };
   const ids = [...text.matchAll(/【候选 (C\d+)】/g)].map(m => m[1]);
@@ -52,6 +56,21 @@ before(async () => {
   await groupArticle(id);
 });
 after(async () => { await provider.close(); await embeddings.close(); await stopBoss(); await closeDb(); });
+
+test("a truncated grouping answer retries a configured fallback model", async () => {
+  const id = await report("length-fallback");
+  const previous = process.env.GROUP_LENGTH_FALLBACK_MODEL;
+  truncateMimo = true;
+  process.env.GROUP_LENGTH_FALLBACK_MODEL = "deepseek-flash";
+  try {
+    const result = await groupArticle(id);
+    assert.notEqual(result.verdict, "skipped");
+  } finally {
+    truncateMimo = false;
+    if (previous === undefined) delete process.env.GROUP_LENGTH_FALLBACK_MODEL;
+    else process.env.GROUP_LENGTH_FALLBACK_MODEL = previous;
+  }
+});
 
 test("missing and invalid identity answers cannot silently assert unrelated", () => {
   assert.equal(BatchSchema.safeParse({}).success, false);

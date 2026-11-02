@@ -19,7 +19,8 @@ import { modelFor } from "../editorial/models.ts";
 import { beijingDate } from "@aihot/contracts/time";
 import { sql, type Db, type Tx } from "../db.ts";
 import { newShortId, newUuid } from "../lib/ids.ts";
-import { chatJson } from "../providers/llm.ts";
+import { chatJson, ModelOutputError, type ChatJsonOptions, type ChatJsonResult } from "../providers/llm.ts";
+import type { z } from "zod";
 import { completeReceipt } from "../providers/receipts.ts";
 import { embeddingsAvailable } from "../providers/embeddings.ts";
 import { isHistorical, STALE_ON_DISCOVERY_MS } from "../content/materials.ts";
@@ -74,8 +75,35 @@ function participantKey(source: { id: string; signal_group_id: string | null }):
 
 const NO_SELECTED_COVERAGE: SelectionValue = { addsValue: true, reason: "没有已公开精选的相关报道" };
 
+/** A reasoning model that ran out of output room gets one no-think fallback for the same structured task. */
+const LENGTH_FALLBACK: Record<string, string> = {
+  "zen-deepseek-v4.1-flash": "zen-deepseek-v4.1-flash-nothink",
+  "commandcode-deepseek-v4.1-flash": "commandcode-deepseek-v4.1-flash-nothink",
+};
+
+function fallbackModelFor(model: string): string | null {
+  const configured = process.env.GROUP_LENGTH_FALLBACK_MODEL?.trim();
+  if (configured) return configured === model ? null : configured;
+  return LENGTH_FALLBACK[model] ?? null;
+}
+
+async function groupChat<S extends z.ZodType>(opts: ChatJsonOptions<S>): Promise<ChatJsonResult<z.infer<S>>> {
+  try {
+    return await chatJson(opts);
+  } catch (error) {
+    if (!(error instanceof ModelOutputError) || !/finish_reason=length/.test(error.message)) throw error;
+    const fallback = fallbackModelFor(opts.model);
+    if (!fallback) throw error;
+    console.error(JSON.stringify({
+      level: "warn", msg: "group model output truncated; retrying fallback", primary: opts.model, fallback,
+      purpose: opts.purpose, subject: opts.subject,
+    }));
+    return chatJson({ ...opts, model: fallback, attemptTag: `${opts.attemptTag ?? "group"}:length-fallback` });
+  }
+}
+
 async function judgeBatch(articleId: string, query: ReportView, cands: CandidateView[], reading: ReadingContext[]): Promise<{ verdicts: Map<number, Verdict>; selection: SelectionValue; receiptId: number }> {
-  const res = await chatJson({
+  const res = await groupChat({
     model: await modelFor("group"), purpose: "group_article", subject: `article:${articleId}`, promptVersion: BATCH_PROMPT_VERSION,
     system: BATCH_SYSTEM, user: batchUser(query, cands, "新报道", reading), schema: BatchSchema.refine(value => completeDecisions(value.decisions, cands.length), "Every candidate requires exactly one decision"), temperature: 0, maxTokens: 400 + 120 * cands.length,
   });
@@ -84,7 +112,7 @@ async function judgeBatch(articleId: string, query: ReportView, cands: Candidate
 
 /** The review model reads both reports on their own; a merge stands only when it agrees. */
 async function confirmMerge(articleId: string, query: ReportView, cand: CandidateView): Promise<{ relation: Relation; receiptId: number }> {
-  const res = await chatJson({
+  const res = await groupChat({
     model: await modelFor("groupReview"), purpose: "group_review", subject: `article:${articleId}:fact:${cand.factId}`, promptVersion: RELATE_PROMPT_VERSION,
     system: PAIR_SYSTEM, user: pairUser(query, cand.report), schema: PairSchema, temperature: 0, maxTokens: 400,
   });
@@ -92,7 +120,7 @@ async function confirmMerge(articleId: string, query: ReportView, cand: Candidat
 }
 
 async function judgeSignal(articleId: string, query: ReportView, cands: CandidateView[]): Promise<{ verdicts: Map<number, Verdict>; receiptId: number }> {
-  const res = await chatJson({
+  const res = await groupChat({
     model: await modelFor("group"), purpose: "group_signal", subject: `article:${articleId}`, promptVersion: RELATE_PROMPT_VERSION,
     system: SIGNAL_SYSTEM, user: batchUser(query, cands, "帖子"), schema: SignalSchema.refine(value => completeDecisions(value.decisions, cands.length), "Every candidate requires exactly one decision"), temperature: 0, maxTokens: 150 + 60 * cands.length,
   });
