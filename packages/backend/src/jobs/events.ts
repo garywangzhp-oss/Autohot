@@ -20,21 +20,39 @@ export async function registerEventJobs(boss: PgBoss) {
   await work(boss, QUEUES.digest, { localConcurrency: 3, pollingIntervalSeconds: 5 }, ({ storyId }) => composeStoryDigest(storyId));
 }
 
-/** Missing jobs are repaired; terminal failures need a receipt release or an explicit rerun. */
+/** Missing jobs are repaired; a terminal job that left the article pending gets a bounded recovery. */
 export async function sweepUngrouped(): Promise<{ enqueued: number }> {
   await ensureQueue(QUEUES.group);
   return sql.begin(async (tx) => {
-    const rows = await tx<{ id: string }[]>`
-      SELECT a.id FROM articles a JOIN sources s ON s.id = a.source_id
+    // A failed job keeps its old singleton key forever. The last job's recoveryAttempt lets this
+    // sweep create a fresh key, while the cap stops a permanently broken article from retrying forever.
+    const rows = await tx<{ id: string; failed_job_id: string | null; recovery_attempt: number }[]>`
+      SELECT a.id, latest.id AS failed_job_id, coalesce(latest.recovery_attempt, 0) AS recovery_attempt
+      FROM articles a JOIN sources s ON s.id = a.source_id
+      LEFT JOIN LATERAL (
+        SELECT j.id, j.state, coalesce((j.data->>'recoveryAttempt')::int, 0) AS recovery_attempt
+        FROM pgboss.job j
+        WHERE j.name = ${QUEUES.group} AND j.data->>'articleId' = a.id
+        ORDER BY j.created_on DESC LIMIT 1
+      ) latest ON true
       WHERE a.grouping_status = 'pending' AND a.created_at < now() - interval '3 minutes'
+        AND a.grouping_receipt_id IS NULL
         AND s.participation_mode = 'editorial' AND a.processing_state = 'analyzed' AND EXISTS (
           SELECT 1 FROM analyses an WHERE an.article_id = a.id AND an.input_revision = a.revision AND an.relevance = 'pass')
         AND NOT EXISTS (SELECT 1 FROM pgboss.job j WHERE j.name = ${QUEUES.group}
           AND j.data->>'articleId' = a.id AND j.state IN ('created', 'active', 'retry'))
       ORDER BY a.created_at LIMIT 100 FOR UPDATE OF a SKIP LOCKED`;
     let enqueued = 0;
+    const MAX_RECOVERY_ATTEMPTS = 2;
     for (const row of rows) {
-      if (await enqueue(QUEUES.group, { articleId: row.id }, { singletonKey: row.id }, tx)) enqueued += 1;
+      if (row.failed_job_id && row.recovery_attempt >= MAX_RECOVERY_ATTEMPTS) {
+        await tx`UPDATE articles SET grouping_status = 'failed', grouping_error = 'grouping job failed after automatic recovery attempts'
+                 WHERE id = ${row.id} AND grouping_status = 'pending'`;
+        continue;
+      }
+      const attempt = row.failed_job_id ? row.recovery_attempt + 1 : 0;
+      const key = row.failed_job_id ? `auto-repair:${row.id}:${attempt}` : row.id;
+      if (await enqueue(QUEUES.group, { articleId: row.id, ...(attempt ? { recoveryAttempt: attempt } : {}) }, { singletonKey: key }, tx)) enqueued += 1;
     }
     return { enqueued };
   });

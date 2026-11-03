@@ -130,6 +130,45 @@ test("a native timeout fails its job with the receipt id, and the release wakes 
   assert.equal((await boss.fetch(QUEUES.group)).length, 0, "successful work is not repeatedly queued");
 });
 
+test("a pending article whose grouping job died gets two fresh recovery jobs, then becomes failed", async () => {
+  const id = await report("terminal-pending");
+  await sql`UPDATE articles SET grouping_status = 'pending', created_at = now() - interval '5 minutes' WHERE id = ${id}`;
+  const boss = await getBoss();
+  await enqueue(QUEUES.group, { articleId: id }, { retryLimit: 0, singletonKey: id });
+
+  async function failJobFor(target: string, message: string): Promise<void> {
+    for (let count = 0; count < 50; count += 1) {
+      const jobs = await boss.fetch(QUEUES.group) as Array<{ id: string; data: unknown }>;
+      if (!jobs.length) break;
+      for (const job of jobs) {
+        if ((job.data as { articleId?: string }).articleId === target) {
+          await boss.fail(QUEUES.group, job.id, new Error(message));
+          await sql`UPDATE pgboss.job SET state = 'failed', retry_count = 4 WHERE id = ${job.id}`;
+          return;
+        }
+        await boss.complete(QUEUES.group, job.id);
+      }
+    }
+    assert.fail(`no queued grouping job for ${target}`);
+  }
+
+  await failJobFor(id, "worker died mid-request");
+  for (const attempt of [1, 2]) {
+    assert.ok((await sweepUngrouped()).enqueued >= 1);
+    const jobs = await boss.fetch(QUEUES.group) as Array<{ id: string; data: unknown }>;
+    const job = jobs.find((candidate) => (candidate.data as { articleId?: string }).articleId === id);
+    assert.ok(job, `recovery ${attempt} job exists`);
+    assert.equal((job.data as { recoveryAttempt?: number }).recoveryAttempt, attempt);
+    await boss.fail(QUEUES.group, job.id, new Error(`recovery ${attempt} failed`));
+    await sql`UPDATE pgboss.job SET state = 'failed', retry_count = 4 WHERE id = ${job.id}`;
+  }
+
+  assert.equal((await sweepUngrouped()).enqueued, 0);
+  const [failed] = await sql<{ grouping_status: string; grouping_error: string | null }[]>`SELECT grouping_status, grouping_error FROM articles WHERE id = ${id}`;
+  assert.equal(failed!.grouping_status, "failed");
+  assert.match(failed!.grouping_error ?? "", /automatic recovery/);
+});
+
 test("a lost pending grouping job is repaired once, but a terminal failure waits for recovery", async () => {
   const pending = await report("lost");
   const failed = await report("terminal");
