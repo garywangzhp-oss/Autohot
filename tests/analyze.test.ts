@@ -78,7 +78,7 @@ const row = async (id: string) =>
   (await sql<{ selected: boolean; relevance: string; score: string | null; title_zh: string; reason_zh: string | null; category: string | null; tags: string[]; subjects: string[]; receipt_ids: string[]; output: Record<string, any> }[]>`
     SELECT selected, relevance, score, title_zh, reason_zh, category, tags, subjects, receipt_ids, output FROM analyses WHERE article_id = ${id} ORDER BY id DESC LIMIT 1`)[0]!;
 
-test("the 40-point minimum is a hard floor for every tier and model", () => {
+test("the 60-point minimum is a hard floor for every tier and model", () => {
   for (const [model, tiers] of Object.entries(SELECTION.byModel)) {
     for (const [tier, calibrated] of Object.entries(tiers)) {
       assert.equal(tierThreshold(tier, model), Math.max(calibrated, SELECTION.minimumScore), `${model} / ${tier}`);
