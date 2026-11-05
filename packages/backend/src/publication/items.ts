@@ -155,8 +155,10 @@ export function toItemSummary(row: ItemRow, lang: SiteLanguage = "zh"): ItemSumm
     id: row.id,
     title: lang === "en" ? row.en_title ?? row.original_title ?? row.title : row.title,
     originalTitle: row.original_title,
-    summary: lang === "en" ? row.en_summary ?? row.original_summary ?? row.summary : row.summary,
-    reason: row.selected ? (lang === "en" ? row.en_reason ?? row.reason : row.reason) : null,
+    summary: lang === "en"
+      ? row.en_summary ?? row.original_summary ?? (row.channel === "x" ? String(row.x_post?.text ?? "").trim() || null : null)
+      : row.summary,
+    reason: row.selected ? (lang === "en" ? row.en_reason ?? null : row.reason) : null,
     source: { name: publicSourceName(row.source_name) },
     links: { original: row.url },
     publishedAt: row.published_at?.toISOString() ?? null,
@@ -212,7 +214,7 @@ export async function itemCopyByIds(ids: string[], lang: SiteLanguage = "zh"): P
   }
   const rows = await sql<{ id: string; title: string; summary: string | null }[]>`
     SELECT p.article_id AS id, coalesce(el.title, p.original_title, p.title) AS title,
-      coalesce(el.summary, a.excerpt, p.summary) AS summary
+      coalesce(el.summary, a.excerpt, a.x_post->>'text', p.summary) AS summary
     FROM publications p JOIN articles a ON a.id = p.article_id
     LEFT JOIN publication_localizations el ON el.article_id = p.article_id AND el.lang = 'en' AND el.revision >= a.revision
     WHERE p.article_id = ANY(${unique}::text[])`;

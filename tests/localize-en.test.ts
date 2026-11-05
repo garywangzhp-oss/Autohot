@@ -65,3 +65,19 @@ test("English feed items prefer stored localization over source and Chinese copy
   assert.equal(item.summary, "English summary");
   assert.equal(item.reason, "Why it matters");
 });
+
+test("English X items fall back to the post text instead of mixing in Chinese copy", () => {
+  const now = new Date("2026-11-03T08:00:00Z");
+  const row: ItemRow = {
+    id: "x-item", title: "中文标题", original_title: "Original X headline", original_summary: null,
+    summary: "中文摘要", reason: "中文理由", category: "autonomous", tags: [], score: 70, selected: true,
+    channel: "x", url: "https://x.com/example/status/1", published_at: now, discovered_at: now, timeline_at: now,
+    seat: true, visibility: "public", body_mode: "full", indexable: true, fact_id: null,
+    source_name: "Example", source_mode: "editorial", x_post: { text: "Original X post text" }, author: "Example", language: "en",
+    story_public_id: null, story_title: null, zh_text: null, quoted_zh: null,
+    en_title: null, en_summary: null, en_reason: null, en_body_text: null,
+  };
+  const item = toFeedItemSummary(row, "en");
+  assert.equal(item.summary, "Original X post text");
+  assert.equal(item.reason, null, "untranslated Chinese reasons are not shown in English");
+});

@@ -100,7 +100,7 @@ async function localizedItems(ids: string[]): Promise<Map<string, LocalizedItem>
   if (!ids.length) return new Map();
   const rows = await sql<{ id: string; title: string; summary: string | null }[]>`
     SELECT p.article_id AS id, coalesce(l.title, p.original_title, p.title) AS title,
-      coalesce(l.summary, a.excerpt, p.summary) AS summary
+      coalesce(l.summary, a.excerpt, a.x_post->>'text', p.summary) AS summary
     FROM publications p JOIN articles a ON a.id = p.article_id
     LEFT JOIN publication_localizations l ON l.article_id = p.article_id AND l.lang = 'en' AND l.revision >= a.revision
     WHERE p.article_id = ANY(${ids}::text[])`;
