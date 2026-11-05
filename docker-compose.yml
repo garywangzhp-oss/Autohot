@@ -77,6 +77,7 @@ services:
       SITE_URL: ${SITE_URL:-http://localhost:3000}
       TRUST_PROXY: ${TRUST_PROXY:-false}
       AIHOT_RELEASE: ${AIHOT_RELEASE:-}
+      GA4_MEASUREMENT_ID: ${GA4_MEASUREMENT_ID:-}
       WEB_HOST: 0.0.0.0
       WEB_PORT: "3000"
     ports:

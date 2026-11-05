@@ -157,6 +157,7 @@ docker compose run --rm setup && docker compose up -d
 - **只属于你这个站的功能可以做成模块**：放进 `modules/<名字>/`，在 `site/modules/` 的清单里启用，见 [架构](architecture.md) 的“模块”。框架本身不带模块。
 - **Agent 接入页已下线**，不再从网页导航进入；MCP、RSS、公开 API 和 Agent Markdown 接口 `/api/v1/agent` 都保留，供已经接入的程序继续使用。
 - **归组截断自动恢复**：`judgeBatch`、归组复核和讨论帖归组遇到 `finish_reason=length` 时，会自动用对应的无推理备用 preset 重试一次（DeepSeek 默认切到 `*-nothink`）；也可用 `GROUP_LENGTH_FALLBACK_MODEL` 指定其他 preset。这样复杂候选不会再原样重试到人工卡住。
+- **GA4 访问统计**：在 `.env` 设置 `GA4_MEASUREMENT_ID=G-XXXXXXXXXX`，Web 服务会显示一次访问统计选择；只有读者点“允许统计”后才加载 Google Analytics，`/admin` 不统计。未设置时不加载任何 GA 脚本。
 - **新增邮箱订阅**：首页搜索框下方和日报出刊时间旁有订阅按钮，点击后打开邮箱弹窗；地址保存在 `email_subscriptions`（迁移 `0058` 自动建表）。当前负责收集订阅地址；发送邮件需要再接入一个邮件服务商。
 - **新增 JEV 影子评分闸门**：正常的两轮评分完全不变；每次评分提交后，模块再通过 Command Code 的 `typesafe/jev` 根据第一轮分值做一次“要不要第二次评分”的模拟决定，并把 JEV 答案和真实第二轮分数、最终是否达到门槛写入 `selection_gate_shadow`（迁移 `0059`，索引 `0060`）。它只记录，不改变精选和发布。默认关闭；在 `.env` 设 `JEV_SHADOW_ENABLED=true` 后，复用已有的 `COMMANDCODE_API_KEY`，重启 worker 生效；`JEV_MODEL` 默认 `typesafe/jev`，`JEV_SHADOW_DAILY_LIMIT` 默认每天最多 2000 次（填 0 关闭这个上限）。JEV 调用也走付费请求回执，服务名是 `commandcode`。
   查看最近记录和命中情况：
