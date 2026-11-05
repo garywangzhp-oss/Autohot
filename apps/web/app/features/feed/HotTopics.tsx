@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { LocalizedLink as Link } from "../i18n/SiteLanguage.tsx";
 import type { HotStripEntry } from "@aihot/contracts/site";
 import { IconArrowRight, IconMinus, IconTrendDown, IconTrendUp } from "../../components/icons";
 import { Faces } from "../hot/Faces";

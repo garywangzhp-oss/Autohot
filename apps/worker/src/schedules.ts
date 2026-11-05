@@ -5,6 +5,7 @@ import { ensureQueue, recordRun } from "@aihot/backend/jobs/queue";
 import { responder, serverModules, type Scheduled } from "@aihot/backend/modules";
 import { sweepUnprocessed } from "@aihot/backend/jobs/content";
 import { translatePending } from "@aihot/backend/editorial/translate";
+import { localizePendingEnglish } from "@aihot/backend/editorial/localize-en";
 import { adaptIntervals, scheduleDueSources } from "@aihot/backend/sources/collect";
 import { scheduleMpReconcile } from "@aihot/backend/sources/mp";
 import { dajialaConfigured } from "@aihot/backend/providers/dajiala";
@@ -12,6 +13,7 @@ import { refreshSourceIcons } from "@aihot/backend/sources/icons";
 import { computeHotRanking, snapshotHeat } from "@aihot/backend/events/hot";
 import { linkRelatedStories } from "@aihot/backend/events/consolidate";
 import { composeDueReports } from "@aihot/backend/reports/compose";
+import { localizePendingReports } from "@aihot/backend/reports/localize-en";
 import { dailyRetention } from "@aihot/backend/operations/retention";
 import { submitIndexNow } from "@aihot/backend/operations/indexnow";
 import { checkAlerts, sendDigest } from "@aihot/backend/operations/alerts";
@@ -26,6 +28,10 @@ const ENGINE_SCHEDULES: Scheduled[] = [
   { name: "content.sweep", cron: "*/5 * * * *", run: sweepUnprocessed },
   // Full-text translations of newly selected items (model calls; off with MODEL_CALLS_ENABLED=false).
   { name: "content.translate", cron: "*/5 * * * *", run: () => translatePending() },
+  // English title/summary/reason and licensed full text, stored once for the bilingual site.
+  { name: "content.localize-en", cron: "*/5 * * * *", run: () => localizePendingEnglish() },
+  // Rebuild English report views from the latest localized items; no model call.
+  { name: "reports.localize-en", cron: "*/5 * * * *", run: () => localizePendingReports() },
   { name: "hot.rank", cron: "*/5 * * * *", run: () => computeHotRanking() },
   { name: "hot.snapshot", cron: "2 * * * *", run: () => snapshotHeat() },
   { name: "stories.links", cron: "12 * * * *", run: linkRelatedStories },

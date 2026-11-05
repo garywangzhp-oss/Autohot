@@ -2,6 +2,7 @@
 // process never touches the database; SSR reads the api over loopback with keep-alive, one or two
 // requests per page.
 import { data, redirect } from "react-router";
+import type { SiteLanguage } from "@aihot/contracts/site";
 import { logError } from "./errors.server.ts";
 
 /** Where the api listens (API_BASE_URL, set by the deployment); development uses the default. */
@@ -18,6 +19,18 @@ class ApiError extends Error {
     this.mergedInto = mergedInto;
     this.requestId = requestId;
   }
+}
+
+/** The first-party website language, carried in the URL so public caches stay language-safe. */
+export function requestLanguage(request: Request): SiteLanguage {
+  return new URL(request.url).searchParams.get("lang") === "en" ? "en" : "zh";
+}
+
+export function withLanguage(path: string, lang: SiteLanguage): string {
+  if (lang !== "en") return path;
+  const url = new URL(path, "http://site.local");
+  url.searchParams.set("lang", "en");
+  return url.pathname + url.search;
 }
 
 export async function apiGet<T>(path: string, init?: { signal?: AbortSignal; headers?: Record<string, string>; responseHeaders?: Headers }): Promise<T> {

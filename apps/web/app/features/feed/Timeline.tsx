@@ -16,6 +16,7 @@ import { markRead, useReadSet } from "../../lib/local-state";
 import { filterParams, listPath } from "../../lib/seo";
 import { isReload, readSnapshot, restoreAnchor, saveSnapshot, useSaveOnLeave } from "../../lib/restore";
 import { FEED_TEXT, useFeedLanguage } from "./Language";
+import { withLanguageHref } from "../i18n/SiteLanguage";
 
 const AUTO_BATCHES = 3;
 const EN_DAY = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Shanghai", month: "short", day: "numeric" });
@@ -132,6 +133,7 @@ export function TimelineSlot({ at, children, fresh = false, delay = 0, dataKey }
 
 export function Timeline({ initial, filters }: { initial: TimelineResponse; filters: TimelineFilters }) {
   const lang = useFeedLanguage();
+  const language = lang;
   const t = FEED_TEXT[lang];
   const location = useLocation();
   const navigation = useNavigation();
@@ -157,7 +159,7 @@ export function Timeline({ initial, filters }: { initial: TimelineResponse; filt
   // Filters (i.e. the loader data) changed. A page still loading for the old filters is cancelled, and a
   // response that arrives anyway is dropped (it belongs to another list and cursor). Back or forward to a
   // filter already visited restores what that history entry had loaded and folded; a new one starts over.
-  const filterKey = listPath("/api/site/timeline", filterParams(filters));
+  const filterKey = withLanguageHref(listPath("/api/site/timeline", filterParams(filters)), language);
   const lastFilterKey = useRef(filterKey);
   const pageRequest = useRef<AbortController | null>(null);
   useEffect(() => () => pageRequest.current?.abort(), []);
@@ -219,14 +221,14 @@ export function Timeline({ initial, filters }: { initial: TimelineResponse; filt
   const loadMore = useCallback(async () => {
     const s = stateRef.current;
     if (!s.nextCursor || pageRequest.current) return;
-    const key = listPath("/api/site/timeline", filterParams(filters));
+    const key = withLanguageHref(listPath("/api/site/timeline", filterParams(filters)), language);
     const controller = new AbortController();
     pageRequest.current = controller;
     const current = () => lastFilterKey.current === key && !controller.signal.aborted;
     setLoadingMore(true);
     setLoadError(false);
     try {
-      const res = await fetch(listPath("/api/site/timeline", { ...filterParams(filters), cursor: s.nextCursor }), { signal: controller.signal });
+      const res = await fetch(withLanguageHref(listPath("/api/site/timeline", { ...filterParams(filters), cursor: s.nextCursor }), language), { signal: controller.signal });
       if (res.status === 400) {
         // Cursor no longer fits: start over from the head.
         const head = await fetch(key, { signal: controller.signal });

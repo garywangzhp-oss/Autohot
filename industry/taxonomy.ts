@@ -12,23 +12,23 @@
  * feedLabel 是分类 RSS 标题里的名字（不写就用 label）。公开接口、RSS 和 MCP 里要把一类并进另一类发布，写在站点设置里（site/site.ts 的 PUBLIC_CATEGORIES）。
  */
 export const CATEGORIES = [
-  { key: "new-models", label: "新车", feedLabel: "新车发布", section: "新车", guide: "全新车型、改款、换代、概念车全球首发、正式上市、开启预售与开始交付的发布信息，以及官方公布的售价、配置、续航、动力与尺寸参数。单一碰撞测试成绩不是新车发布，归评测。" },
-  { key: "sales", label: "销量与市场", feedLabel: "销量与市场", section: "市场与销量", guide: "车企与车型的销量、交付量、上牌量、市占率、订单与终端价格变化，以及分地区、分品牌的市场格局。企业整体的营收与利润归财务与资本。" },
-  { key: "electrification", label: "电动化", feedLabel: "电动化与三电", section: "电动化与三电", guide: "纯电、插混、增程、油电混动与燃料电池等动力形式，以及电池、电驱、电控（三电）技术本身的变化。整车平台或具体车型的发布归新车，充电网络与能源供给归能源与充电。" },
-  { key: "autonomous", label: "智能驾驶", feedLabel: "智能化与自动驾驶", section: "智能化与自动驾驶", guide: "辅助驾驶与自动驾驶的技术路线、量产落地、法规许可、事故与调查，以及 Robotaxi 的运营。车机、座舱与车载软件的更新归汽车技术与软件。" },
-  { key: "technology", label: "汽车技术与软件", feedLabel: "技术与软件", section: "技术与软件", guide: "整车平台与电子电气架构、智能座舱、车机系统、车载软件、OTA、芯片与传感器的技术进展，以及软件定义汽车相关的工程实践。三电本身归电动化，零部件厂商的经营动态归供应链。" },
-  { key: "supply-chain", label: "供应链", feedLabel: "供应链", section: "供应链与制造", guide: "电池、芯片、电驱、传感器、轮胎与内饰等零部件和 Tier 1 供应商的动态，以及原材料、缺货、关税与供应链风险。自有工厂的建设、产能与停产归制造与工厂。" },
-  { key: "manufacturing", label: "制造与工厂", feedLabel: "制造与工厂", section: "供应链与制造", guide: "整车与零部件工厂的新建、扩产、停产、裁员与产能利用率，以及生产工艺、自动化与本地化生产布局。" },
-  { key: "companies", label: "企业与高管", feedLabel: "企业与高管", section: "企业与经营", guide: "车企与供应链公司的组织、人事与治理：高管任免、团队重组、战略调整、合作与竞争、召回与安全事件的处置。经营结果归财务与资本，市场表现归销量与市场。" },
-  { key: "industry", label: "行业趋势", feedLabel: "行业趋势", section: "行业趋势", guide: "跨企业的行业现象与走向：渗透率变化、价格战、品牌格局、出海与全球化等产业趋势。单个企业的具体经营动作归企业与高管。" },
-  { key: "policy", label: "政策法规", feedLabel: "政策法规", section: "政策法规", guide: "各国和地区的汽车法规、排放与安全标准、补贴与关税、准入与合规要求、监管调查与召回指令。企业自愿做出的承诺归企业与高管。" },
-  { key: "finance", label: "财务与资本", feedLabel: "财务与资本", section: "企业与经营", guide: "车企与供应链公司的营收、利润、现金流、财报、融资、IPO、并购与估值。销量与交付量归销量与市场。" },
-  { key: "energy", label: "能源与充电", feedLabel: "能源与充电", section: "电动化与三电", guide: "充电网络与超充、换电、V2G、家充与补能体验，以及电力、氢能与可再生能源供给对汽车的影响。电池与三电技术本身归电动化。" },
-  { key: "mobility", label: "出行与商业模式", feedLabel: "出行与商业模式", section: "行业趋势", guide: "共享出行、租赁、订阅、二手车、经销商与直营模式，以及软件订阅等新的商业模式。单车产品归新车，智驾技术归智能驾驶。" },
-  { key: "motorsport", label: "赛车运动", feedLabel: "赛车运动", section: "赛车运动", guide: "F1、Formula E、WEC、WRC、NASCAR 等赛事与车队动态，以及赛事技术向量产车的迁移。纯改装与车迷文化不作精选。" },
-  { key: "review", label: "评测", feedLabel: "评测", section: "评测与观点", guide: "媒体或第三方做的车型实测、对比评测、拆解、碰撞测试与长测。重点是可验证的测试结果和可迁移的工程认知；只有态度和预测而无实测归观点。", commentary: true },
-  { key: "opinion", label: "观点", feedLabel: "观点", section: "评测与观点", guide: "重点是作者的解释、判断、主张、预测、评论或访谈观点。讨论市场不自动归行业趋势，作者是名人不自动归观点。", commentary: true },
-] as const satisfies ReadonlyArray<{ key: string; label: string; feedLabel?: string; section: string; guide: string; commentary?: true }>;
+  { key: "new-models", labelEn: "New models", label: "新车", feedLabel: "新车发布", sectionEn: "New models", section: "新车", guide: "全新车型、改款、换代、概念车全球首发、正式上市、开启预售与开始交付的发布信息，以及官方公布的售价、配置、续航、动力与尺寸参数。单一碰撞测试成绩不是新车发布，归评测。" },
+  { key: "sales", labelEn: "Sales & market", label: "销量与市场", feedLabel: "销量与市场", sectionEn: "Market & sales", section: "市场与销量", guide: "车企与车型的销量、交付量、上牌量、市占率、订单与终端价格变化，以及分地区、分品牌的市场格局。企业整体的营收与利润归财务与资本。" },
+  { key: "electrification", labelEn: "Electrification", label: "电动化", feedLabel: "电动化与三电", sectionEn: "Electrification & EV tech", section: "电动化与三电", guide: "纯电、插混、增程、油电混动与燃料电池等动力形式，以及电池、电驱、电控（三电）技术本身的变化。整车平台或具体车型的发布归新车，充电网络与能源供给归能源与充电。" },
+  { key: "autonomous", labelEn: "Autonomous driving", label: "智能驾驶", feedLabel: "智能化与自动驾驶", sectionEn: "Autonomy & ADAS", section: "智能化与自动驾驶", guide: "辅助驾驶与自动驾驶的技术路线、量产落地、法规许可、事故与调查，以及 Robotaxi 的运营。车机、座舱与车载软件的更新归汽车技术与软件。" },
+  { key: "technology", labelEn: "Technology & software", label: "汽车技术与软件", feedLabel: "技术与软件", sectionEn: "Technology & software", section: "技术与软件", guide: "整车平台与电子电气架构、智能座舱、车机系统、车载软件、OTA、芯片与传感器的技术进展，以及软件定义汽车相关的工程实践。三电本身归电动化，零部件厂商的经营动态归供应链。" },
+  { key: "supply-chain", labelEn: "Supply chain", label: "供应链", feedLabel: "供应链", sectionEn: "Supply chain & manufacturing", section: "供应链与制造", guide: "电池、芯片、电驱、传感器、轮胎与内饰等零部件和 Tier 1 供应商的动态，以及原材料、缺货、关税与供应链风险。自有工厂的建设、产能与停产归制造与工厂。" },
+  { key: "manufacturing", labelEn: "Manufacturing", label: "制造与工厂", feedLabel: "制造与工厂", sectionEn: "Supply chain & manufacturing", section: "供应链与制造", guide: "整车与零部件工厂的新建、扩产、停产、裁员与产能利用率，以及生产工艺、自动化与本地化生产布局。" },
+  { key: "companies", labelEn: "Companies & executives", label: "企业与高管", feedLabel: "企业与高管", sectionEn: "Companies & operations", section: "企业与经营", guide: "车企与供应链公司的组织、人事与治理：高管任免、团队重组、战略调整、合作与竞争、召回与安全事件的处置。经营结果归财务与资本，市场表现归销量与市场。" },
+  { key: "industry", labelEn: "Industry trends", label: "行业趋势", feedLabel: "行业趋势", sectionEn: "Industry trends", section: "行业趋势", guide: "跨企业的行业现象与走向：渗透率变化、价格战、品牌格局、出海与全球化等产业趋势。单个企业的具体经营动作归企业与高管。" },
+  { key: "policy", labelEn: "Policy & regulation", label: "政策法规", feedLabel: "政策法规", sectionEn: "Policy & regulation", section: "政策法规", guide: "各国和地区的汽车法规、排放与安全标准、补贴与关税、准入与合规要求、监管调查与召回指令。企业自愿做出的承诺归企业与高管。" },
+  { key: "finance", labelEn: "Finance & capital", label: "财务与资本", feedLabel: "财务与资本", sectionEn: "Companies & operations", section: "企业与经营", guide: "车企与供应链公司的营收、利润、现金流、财报、融资、IPO、并购与估值。销量与交付量归销量与市场。" },
+  { key: "energy", labelEn: "Energy & charging", label: "能源与充电", feedLabel: "能源与充电", sectionEn: "Electrification & EV tech", section: "电动化与三电", guide: "充电网络与超充、换电、V2G、家充与补能体验，以及电力、氢能与可再生能源供给对汽车的影响。电池与三电技术本身归电动化。" },
+  { key: "mobility", labelEn: "Mobility", label: "出行与商业模式", feedLabel: "出行与商业模式", sectionEn: "Industry trends", section: "行业趋势", guide: "共享出行、租赁、订阅、二手车、经销商与直营模式，以及软件订阅等新的商业模式。单车产品归新车，智驾技术归智能驾驶。" },
+  { key: "motorsport", labelEn: "Motorsport", label: "赛车运动", feedLabel: "赛车运动", sectionEn: "Motorsport", section: "赛车运动", guide: "F1、Formula E、WEC、WRC、NASCAR 等赛事与车队动态，以及赛事技术向量产车的迁移。纯改装与车迷文化不作精选。" },
+  { key: "review", labelEn: "Reviews", label: "评测", feedLabel: "评测", sectionEn: "Reviews & opinion", section: "评测与观点", guide: "媒体或第三方做的车型实测、对比评测、拆解、碰撞测试与长测。重点是可验证的测试结果和可迁移的工程认知；只有态度和预测而无实测归观点。", commentary: true },
+  { key: "opinion", labelEn: "Opinion", label: "观点", feedLabel: "观点", sectionEn: "Reviews & opinion", section: "评测与观点", guide: "重点是作者的解释、判断、主张、预测、评论或访谈观点。讨论市场不自动归行业趋势，作者是名人不自动归观点。", commentary: true },
+] as const satisfies ReadonlyArray<{ key: string; label: string; labelEn: string; feedLabel?: string; section: string; sectionEn: string; guide: string; commentary?: true }>;
 
 /**
  * 这个行业最受关注的一类发布（汽车行业是新车）：日报报头的“N 款新车”、改分类后修订已出的报告都按它数。

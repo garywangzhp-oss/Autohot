@@ -80,12 +80,26 @@ export const SITE = {
   crawlerName: "AutoHotBot/1.0",
 } as const;
 
+/** English public identity. Interface translations and English report titles read this; content
+ * translations live in the database and are written once by the worker. */
+export const SITE_EN = {
+  name: "AutoHot",
+  subject: "automotive",
+  homeTitle: "AutoHot — Global automotive news, selected daily",
+  topicsTitle: "Automotive topics: companies, technology and market trends",
+  description: "A global automotive news briefing: we follow trusted sources, group reports about the same event, and publish a concise daily edition.",
+  tagline: "The automotive stories that matter, worldwide",
+  keywords: ["automotive news", "car industry", "electric vehicles", "autonomous driving", "auto news"],
+} as const;
+
 /** 使用规则和隐私说明两页（正文在 pages/ 里）。 */
 export const POLICY = {
   terms: {
     /** 页面名：导航、页脚、页面标题都用它。 */
     name: "使用规则",
+    nameEn: "Terms of use",
     description: "本站网页、RSS、公开 API 与 MCP 的使用规则。",
+    descriptionEn: "Terms for using this website, RSS feeds, the public API and MCP.",
     /** llms.txt 里对这一页的一句说明（选填）。 */
     covers: null as string | null,
     /**
@@ -101,6 +115,7 @@ export const POLICY = {
   },
   privacy: {
     description: "本站如何处理浏览器本地数据、反馈、订阅、访问统计、广告与网络日志。",
+    descriptionEn: "How this site handles local data, feedback, subscriptions, analytics, advertising and network logs.",
     /** llms.txt 里对这一页的一句说明（选填）。 */
     covers: null as string | null,
   },
@@ -165,6 +180,25 @@ export const ABOUT = {
   /** 页面底部的版权与下架说明，中间接“反馈页”的链接。 */
   copyright: [`${ABOUT_NAME} 是聚合摘要和阅读索引，原文版权归各来源所有。如果你是来源方，希望更正、下架或调整展示方式，可以通过`, "联系我们。"] as [string, string],
   /** 页面底部“使用规则”链接的锚点 id（选填）：外部文档写死过这个锚点就填上，以后不要改。 */
+  termsAnchor: null as string | null,
+} as const;
+
+/** English copy for the about page. Counts still come from the live site statistics. */
+export const ABOUT_EN = {
+  name: "AutoHot",
+  kicker: "About AutoHot",
+  description: `About AutoHot: ${SITE_EN.description}`,
+  headline: ["The global auto industry moves every day.", "Only a few stories are worth your time."] as [string, string],
+  lead: "AutoHot follows {sources} sources, groups reports about the same event, scores what matters and publishes a concise daily edition. Free, no account required.",
+  sourcesFallback: "dozens of",
+  steps: {
+    collect: "We follow automaker newsrooms, industry publishers, specialist media and regulators; active sources are checked as often as every 15 minutes.",
+    store: "Every report is stored and reports about the same event are grouped together, which also powers the trending ranking.",
+    select: "Models check whether a story is relevant and substantive, then write the English headline, summary and editorial reason. Marketing copy and duplicate reposts stay out.",
+    publish: "A daily edition goes out every morning, with weekly and monthly reviews built from the same selected reporting.",
+  },
+  maker: null as null | { name: string; avatarSourceId?: string | null; greeting: string[] },
+  copyright: ["AutoHot is a summary and reading index. Copyright in original reporting remains with each publisher. If you are a publisher and want a correction, removal or presentation change, use the", "contact page."] as [string, string],
   termsAnchor: null as string | null,
 } as const;
 

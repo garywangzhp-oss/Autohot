@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
-import { Link } from "react-router";
+
 import type { CopyDocument, RenderedCopy } from "../../lib/markdown";
+import { LocalizedLink as Link } from "../i18n/SiteLanguage";
 import { ArticleLayout, RailSection } from "../../components/ui/Page";
 import { PhoneBar } from "../../components/shell/PhoneBar";
 

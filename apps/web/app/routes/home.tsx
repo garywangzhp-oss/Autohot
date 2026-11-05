@@ -10,6 +10,7 @@ import { HotTopics } from "../features/feed/HotTopics";
 import { ActiveFilters, CategoryTabs, FeedBar, SearchField } from "../features/feed/Filters";
 import { FeedLanguageProvider, HomeLanguageToggle, type FeedLanguage } from "../features/feed/Language";
 import { loadParts } from "../site-modules";
+import { SITE_EN } from "@aihot/site";
 
 export const handle: Screen = { tab: "featured", name: "精选" };
 export { shouldRevalidate } from "../lib/page-reuse";
@@ -24,15 +25,16 @@ export async function loader({ request }: Route.LoaderArgs) {
   if (q && q.trim()) throw redirect(`/all${url.search}`);
   const filters = readFilters(url.searchParams);
   const upstream = new Headers();
-  const data = await loadOr404<TimelineResponse>(listPath("/api/site/timeline", filterParams(filters)), { responseHeaders: upstream, signal: request.signal });
+  const data = await loadOr404<TimelineResponse>(listPath("/api/site/timeline", { ...filterParams(filters), lang: lang === "en" ? "en" : null }), { responseHeaders: upstream, signal: request.signal });
   return withHeaders({ data, filters, lang, expiresAt: pageExpiresAt(60, upstream) }, { headers: apiDeadlineCache(60, Date.now(), upstream) });
 }
 
 export function meta({ loaderData }: Route.MetaArgs) {
   const path = listPath("/", loaderData ? filterParams(loaderData.filters) : {});
   const english = loaderData?.lang === "en";
-  const titles = loaderData?.data.cards.map((c) => english ? (c.item.originalTitle || c.item.title) : c.item.title) ?? [];
-  return pageMeta({ path, jsonLd: path === "/" ? [...siteLd(), itemListLd("/", english ? "Featured" : "精选", titles)] : undefined });
+  const titles = loaderData?.data.cards.map((c) => c.item.title) ?? [];
+  const localizedPath = english ? `${path}${path.includes("?") ? "&" : "?"}lang=en` : path;
+  return pageMeta({ title: english ? SITE_EN.homeTitle : undefined, rawTitle: english, path: localizedPath, description: english ? SITE_EN.description : undefined, jsonLd: path === "/" ? [...siteLd(), itemListLd(localizedPath, english ? "Featured" : "精选", titles)] : undefined });
 }
 
 export function headers({ loaderHeaders }: Route.HeadersArgs) {

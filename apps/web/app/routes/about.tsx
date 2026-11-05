@@ -1,9 +1,10 @@
 import { Fragment, useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { IntentLink } from "../components/ui/IntentLink";
-import { Link, useLoaderData } from "react-router";
+import { useLoaderData } from "react-router";
+import type { Route } from "./+types/about";
 import type { SiteContact, SiteStats } from "@aihot/contracts/site";
-import { ABOUT, POLICY, REPORTS, SITE, subjectAfter } from "@aihot/site";
-import { apiGet, edgeTtl, pageExpiresAt } from "../lib/api.server";
+import { ABOUT, ABOUT_EN, POLICY, REPORTS, SITE, subjectAfter } from "@aihot/site";
+import { apiGet, edgeTtl, pageExpiresAt, requestLanguage, withLanguage } from "../lib/api.server";
 import { cachedLoader } from "../lib/page-reuse";
 import { organizationLd, pageMeta } from "../lib/seo";
 import { Kicker } from "../components/ui/Kicker";
@@ -12,6 +13,7 @@ import { IconArrowRight } from "../components/icons";
 import { SignalRiver, type RiverSource } from "../features/about/SignalRiver";
 import { PhoneBar } from "../components/shell/PhoneBar";
 import { PrivacySettingsButton } from "../features/analytics/PrivacyConsent";
+import { LocalizedLink as Link, useSiteLanguage } from "../features/i18n/SiteLanguage";
 import type { Screen } from "../components/shell/screens";
 
 export const handle: Screen = { tab: "me", name: "关于" };
@@ -25,13 +27,14 @@ export function headers() {
 export async function loader({ request }: { request: Request }) {
   const [contact, stats] = await Promise.all([
     apiGet<SiteContact>("/api/site/contact", { signal: request.signal }).catch(() => null),
-    apiGet<SiteStats>("/api/site/stats", { signal: request.signal }).catch(() => null),
+    apiGet<SiteStats>(withLanguage("/api/site/stats", requestLanguage(request)), { signal: request.signal }).catch(() => null),
   ]);
   return { contact, stats, expiresAt: pageExpiresAt(300) };
 }
 
-export function meta() {
-  return pageMeta({ title: "关于", description: ABOUT.description, path: "/about", image: "/og/pages/about.png", jsonLd: organizationLd() });
+export function meta({ location }: Route.MetaArgs) {
+  const en = new URLSearchParams(location.search).get("lang") === "en";
+  return pageMeta({ title: en ? "About AutoHot" : "关于", rawTitle: en, description: en ? ABOUT_EN.description : ABOUT.description, path: en ? "/about?lang=en" : "/about", image: "/og/pages/about.png", jsonLd: organizationLd() });
 }
 
 const NO_SOURCES: RiverSource[] = [];
@@ -81,36 +84,36 @@ interface Stage {
   note: ReactNode;
 }
 
-function stagesOf(stats: SiteStats | null): Stage[] {
+function stagesOf(stats: SiteStats | null, lang: "zh" | "en"): Stage[] {
   const kinds = stats ? KIND_ORDER.filter(([k]) => stats.sourceKinds[k]).map(([k, label]) => `${label} ${stats.sourceKinds[k]}`).join(" · ") : null;
   return [
     {
       no: "01",
-      title: "采集",
-      figure: stats && <Figure n={stats.sources} unit="个信源" />,
-      text: ABOUT.steps.collect,
+      title: lang === "en" ? "Collect" : "采集",
+      figure: stats && <Figure n={stats.sources} unit={lang === "en" ? " sources" : "个信源"} />,
+      text: (lang === "en" ? ABOUT_EN : ABOUT).steps.collect,
       note: kinds,
     },
     {
       no: "02",
-      title: "收录",
-      figure: stats && <Figure n={stats.items} unit="条动态" />,
-      text: ABOUT.steps.store,
-      note: stats && <>过去 24 小时收进 {stats.day.collected.toLocaleString("en-US")} 条</>,
+      title: lang === "en" ? "Archive" : "收录",
+      figure: stats && <Figure n={stats.items} unit={lang === "en" ? " stories" : "条动态"} />,
+      text: (lang === "en" ? ABOUT_EN : ABOUT).steps.store,
+      note: stats && (lang === "en" ? <>{stats.day.collected.toLocaleString("en-US")} collected in the past 24h</> : <>过去 24 小时收进 {stats.day.collected.toLocaleString("en-US")} 条</>),
     },
     {
       no: "03",
-      title: "精选",
-      figure: stats && <Figure n={stats.selected} unit={REPORTS.metricUnits.selectedCount} />,
-      text: ABOUT.steps.select,
-      note: stats && <>过去 24 小时 {stats.day.selected} 条进了精选</>,
+      title: lang === "en" ? "Select" : "精选",
+      figure: stats && <Figure n={stats.selected} unit={lang === "en" ? " selected" : REPORTS.metricUnits.selectedCount} />,
+      text: (lang === "en" ? ABOUT_EN : ABOUT).steps.select,
+      note: stats && (lang === "en" ? <>{stats.day.selected} selected in the past 24h</> : <>过去 24 小时 {stats.day.selected} 条进了精选</>),
     },
     {
       no: "04",
-      title: "成刊",
-      figure: stats && <Figure n={stats.dailies} unit={REPORTS.metricUnits.reportsCovered} />,
-      text: ABOUT.steps.publish,
-      note: "也可以用 RSS、API、MCP 订阅",
+      title: lang === "en" ? "Publish" : "成刊",
+      figure: stats && <Figure n={stats.dailies} unit={lang === "en" ? " issues" : REPORTS.metricUnits.reportsCovered} />,
+      text: (lang === "en" ? ABOUT_EN : ABOUT).steps.publish,
+      note: lang === "en" ? "Also available by RSS, API and MCP" : "也可以用 RSS、API、MCP 订阅",
     },
   ];
 }
@@ -183,10 +186,11 @@ function Maker({ maker, contact }: { maker: NonNullable<typeof ABOUT.maker>; con
 
 /** The latest 精选 under the river's paper; it moves on each time an item reaches the paper. */
 function Latest({ item, className = "" }: { item: SiteStats["latest"][number] | undefined; className?: string }) {
+  const en = useSiteLanguage() === "en";
   if (!item) return null;
   return (
     <IntentLink viewTransition to={`/items/${item.id}`} className={`group block ${className}`}>
-      <span className="text-[11px] font-semibold tracking-[0.2em] text-accent">最近精选</span>
+      <span className="text-[11px] font-semibold tracking-[0.2em] text-accent">{en ? "LATEST SELECTION" : "最近精选"}</span>
       <span key={item.id} className="animate-fade-up mt-1.5 block">
         <span className="line-clamp-2 text-[13.5px] font-semibold leading-[1.55] text-ink transition-colors group-hover:text-accent">{item.title}</span>
         <span className="mt-1 block truncate text-[12px] text-ink-4">{item.source}</span>
@@ -197,11 +201,13 @@ function Latest({ item, className = "" }: { item: SiteStats["latest"][number] | 
 
 export default function AboutPage() {
   const { contact, stats } = useLoaderData<typeof loader>();
+  const lang = useSiteLanguage();
+  const about = lang === "en" ? ABOUT_EN : ABOUT;
   const [focus, setFocus] = useState<number | null>(null);
   const [at, setAt] = useState(0);
   const shown = useRef(0);
   const sources = useMemo(() => stats?.sampleSources ?? NO_SOURCES, [stats]);
-  const stages = useMemo(() => stagesOf(stats), [stats]);
+  const stages = useMemo(() => stagesOf(stats, lang), [stats, lang]);
   const latest = stats?.latest ?? [];
   // A pulse reaches the paper every second or so; the headline under it changes at most every 2.8s.
   const onArrive = useCallback(() => {
@@ -213,19 +219,19 @@ export default function AboutPage() {
 
   return (
     <div className="mx-auto max-w-[var(--page-max-reading)] pb-14 lg:pt-3">
-      <PhoneBar back={{ to: "/more", label: "我的" }} title={`关于 ${ABOUT.name}`} />
+      <PhoneBar back={{ to: "/more", label: lang === "en" ? "Me" : "我的" }} title={lang === "en" ? "About AutoHot" : `关于 ${ABOUT.name}`} />
       <header className="grid items-end gap-8 pt-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:pt-0">
         <div>
-          <Kicker>{ABOUT.kicker}</Kicker>
+          <Kicker>{about.kicker}</Kicker>
           <h1 data-page-title="" className="mt-5 text-[34px] font-black leading-[1.18] tracking-[-0.03em] text-ink [text-wrap:balance] sm:text-[46px] xl:text-[56px] 2xl:text-[64px]">
-            {ABOUT.headline[0]}
+            {about.headline[0]}
             <br />
-            <span className="text-accent">{ABOUT.headline[1]}</span>
+            <span className="text-accent">{about.headline[1]}</span>
           </h1>
           <p className="mt-5 max-w-[36em] text-[15.5px] leading-[1.85] text-ink-3 xl:text-[17px]">
-            {ABOUT.lead.split("{sources}").map((part, i) => (
+            {about.lead.split("{sources}").map((part, i) => (
               <Fragment key={i}>
-                {i > 0 && (stats ? <>{" "}<span className="num font-semibold text-ink">{stats.sources}</span>{" "}</> : ABOUT.sourcesFallback)}
+                {i > 0 && (stats ? <>{" "}<span className="num font-semibold text-ink">{stats.sources}</span>{" "}</> : about.sourcesFallback)}
                 {part}
               </Fragment>
             ))}
@@ -233,17 +239,17 @@ export default function AboutPage() {
         </div>
         <div className="flex flex-wrap gap-3 lg:pb-2">
           <IntentLink to="/" className={buttonClass("primary", "lg")}>
-            看今天的精选 <IconArrowRight size={15} />
+            {lang === "en" ? "Read today selection" : "看今天的精选"} <IconArrowRight size={15} />
           </IntentLink>
           <IntentLink to="/daily" className={buttonClass("secondary", "lg")}>
-            读最新日报
+            {lang === "en" ? "Read the latest daily" : "读最新日报"}
           </IntentLink>
         </div>
       </header>
 
       <section aria-labelledby="how" className="mt-10 xl:mt-14">
         <h2 id="how" className="sr-only">
-          {`${ABOUT.name} 怎么工作`}
+          {lang === "en" ? "How AutoHot works" : `${ABOUT.name} 怎么工作`}
         </h2>
         <SignalRiver sources={sources} focus={focus} onArrive={onArrive} className="h-[230px] sm:h-[300px] lg:h-[360px] 2xl:h-[420px]">
           <Latest item={latest[at]} className="absolute left-[75%] top-[calc(42%+42px)] hidden w-[25%] px-6 lg:block" />
@@ -276,11 +282,11 @@ export default function AboutPage() {
       {ABOUT.maker && <Maker maker={ABOUT.maker} contact={contact} />}
 
       <p className="mt-16 well rounded-card px-5 py-4 text-[13px] leading-[1.85] text-ink-3">
-        {ABOUT.copyright[0]}
+        {about.copyright[0]}
         <Link viewTransition to="/feedback" className="text-accent hover:underline">
-          反馈页
+          {lang === "en" ? "feedback page" : "反馈页"}
         </Link>
-        {ABOUT.copyright[1]}
+        {about.copyright[1]}
       </p>
 
       <footer className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5 text-[12.5px] text-ink-4">

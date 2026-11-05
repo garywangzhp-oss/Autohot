@@ -1,6 +1,7 @@
 // Site navigation in one place: the desktop sidebar's sections and the phone tab bar's tabs, the engine's
 // and the site's modules'.
 import type { ReactNode } from "react";
+import type { SiteLanguage } from "@aihot/contracts/site";
 import { subjectAfter, withSubject } from "@aihot/site";
 import { webModules } from "../../site-modules";
 import {
@@ -17,6 +18,22 @@ export interface NavItem {
   changelog?: boolean;
 }
 
+const EN: Record<string, string> = {
+  "/": "Featured",
+  "/all": "All stories",
+  "/hot": "Trending",
+  "/daily": "Daily",
+  "/topics": "Topics",
+  "/starred": "Saved",
+  "/about": "About",
+  "/changelog": "Changelog",
+  "/feedback": "Feedback",
+  "/more": "Me",
+};
+
+function label(lang: SiteLanguage, to: string, chinese: string): string {
+  return lang === "en" ? EN[to] ?? chinese : chinese;
+}
 const SECTIONS: Array<{ title: string; items: NavItem[] }> = [
   {
     title: "内容",
@@ -43,7 +60,7 @@ const SECTIONS: Array<{ title: string; items: NavItem[] }> = [
  * The sidebar: the engine's sections with the modules' between 内容 and 更多; a module naming a section
  * that is already there adds to it.
  */
-export function sidebar(): Array<{ title: string; items: NavItem[] }> {
+export function sidebar(lang: SiteLanguage = "zh"): Array<{ title: string; items: NavItem[] }> {
   const [content, ...rest] = SECTIONS;
   const more = rest.pop()!;
   const sections = [content!, ...rest].map((s) => ({ ...s, items: [...s.items] }));
@@ -53,7 +70,8 @@ export function sidebar(): Array<{ title: string; items: NavItem[] }> {
     if (section) section.items.push(...m.sidebar.items);
     else sections.push({ title: m.sidebar.section, items: [...m.sidebar.items] });
   }
-  return [...sections, more];
+  const localized = [...sections, more].map((section) => ({ ...section, title: lang === "en" ? (section.title === "内容" ? "Content" : "More") : section.title, items: section.items.map((item) => ({ ...item, label: label(lang, item.to, item.label) })) }));
+  return localized;
 }
 
 /** A sidebar entry is lit on its pages; 日报 also covers weekly and monthly reports. */
@@ -92,6 +110,6 @@ const ENGINE_TABS: Tab[] = [
 ];
 
 /** The tab bar: the engine's, the modules' before 我的. */
-export function tabs(): Tab[] {
-  return [...ENGINE_TABS.slice(0, -1), ...webModules().flatMap((m) => m.tabs ?? []), ENGINE_TABS.at(-1)!];
+export function tabs(lang: SiteLanguage = "zh"): Tab[] {
+  return [...ENGINE_TABS.slice(0, -1), ...webModules().flatMap((m) => m.tabs ?? []), ENGINE_TABS.at(-1)!].map((tab) => ({ ...tab, label: label(lang, tab.to, tab.label) }));
 }

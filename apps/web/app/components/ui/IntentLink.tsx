@@ -1,11 +1,14 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { Link, UNSAFE_DataRouterContext, UNSAFE_FrameworkContext, useHref, useLocation, type LinkProps } from "react-router";
 import { hasFreshPage } from '../../lib/page-reuse';
+import { useSiteLanguage, withLanguageHref } from "../../features/i18n/SiteLanguage";
 
 /** Hover, keyboard focus and a stationary touch prefetch; scrolling over a card does not. */
 export function IntentLink({ onFocus, onBlur, onMouseEnter, onMouseLeave, onTouchStart, onTouchMove, onTouchEnd, onTouchCancel, ...props }: Omit<LinkProps, "prefetch">) {
   const [ready, setReady] = useState(false);
-  const href = useHref(props.to);
+  const lang = useSiteLanguage();
+  const to = typeof props.to === "string" ? withLanguageHref(props.to, lang) : props.to;
+  const href = useHref(to);
   const location = useLocation();
   const context = useContext(UNSAFE_DataRouterContext);
   const framework = useContext(UNSAFE_FrameworkContext);
@@ -32,8 +35,8 @@ export function IntentLink({ onFocus, onBlur, onMouseEnter, onMouseLeave, onTouc
     timer.current = setTimeout(() => { timer.current = null; setReady(true); }, 100);
   };
   const cancel = () => { clear(); setReady(false); };
-  useEffect(() => { cancel(); return clear; }, [props.to]);
-  return <><Link {...props} prefetch={shouldPrefetch ? "render" : "none"}
+  useEffect(() => { cancel(); return clear; }, [to]);
+  return <><Link {...props} to={to} prefetch={shouldPrefetch ? "render" : "none"}
     onFocus={(e) => { onFocus?.(e); if (!e.defaultPrevented) start(); }}
     onBlur={(e) => { onBlur?.(e); cancel(); }}
     onMouseEnter={(e) => { onMouseEnter?.(e); if (!e.defaultPrevented) start(); }}

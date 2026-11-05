@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router";
+import { LocalizedLink as Link, useSiteLanguage, withLanguageHref } from "../i18n/SiteLanguage.tsx";
 import type { StoryFollowup, StoryFollowupsResponse, StoryRef } from "@aihot/contracts/site";
 import { MoreLink } from "../../components/ui/Page";
 import { relativeTime } from "../../lib/format";
@@ -11,6 +11,7 @@ import { relativeTime } from "../../lib/format";
 export function StoryFollowups({ story, currentId }: { story: StoryRef; currentId: string }) {
   const [items, setItems] = useState<StoryFollowup[] | null>(null);
   const [more, setMore] = useState(false);
+  const lang = useSiteLanguage();
   const anchor = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const controller = new AbortController();
@@ -19,7 +20,7 @@ export function StoryFollowups({ story, currentId }: { story: StoryRef; currentI
     const load = () => {
       if (started) return;
       started = true;
-      fetch(`/api/site/stories/${encodeURIComponent(story.publicId)}/followups`, { signal: controller.signal })
+      fetch(withLanguageHref(`/api/site/stories/${encodeURIComponent(story.publicId)}/followups`, lang), { signal: controller.signal })
         .then((r) => (r.ok ? r.json() : null))
         .then((body: StoryFollowupsResponse | null) => {
           if (!body || controller.signal.aborted) return;
@@ -33,9 +34,9 @@ export function StoryFollowups({ story, currentId }: { story: StoryRef; currentI
     if (observer && anchor.current) observer.observe(anchor.current);
     else load();
     return () => { observer?.disconnect(); controller.abort(); };
-  }, [story.publicId, currentId]);
+  }, [story.publicId, currentId, lang]);
   return <div ref={anchor}>
-    <noscript><a href={`/story/${story.publicId}`}>查看事件全部后续</a></noscript>
+    <noscript><a href={withLanguageHref(`/story/${story.publicId}`, lang)}>{lang === "en" ? "View all event updates" : "查看事件全部后续"}</a></noscript>
     {items && items.length > 0 && <Followups items={items} more={more} story={story} />}
   </div>;
 }

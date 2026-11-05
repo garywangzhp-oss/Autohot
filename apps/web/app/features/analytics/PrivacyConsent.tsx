@@ -2,6 +2,7 @@
 // script is loaded before the reader opts in, and the same record feeds Google Consent Mode v2.
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "react-router";
+import { useSiteLanguage } from "../i18n/SiteLanguage";
 import {
   LEGACY_ANALYTICS_CONSENT_KEY, PRIVACY_CONSENT_KEY, legacyAnalyticsConsent, parseStoredConsent,
   serializeStoredConsent, type ConsentPreferences,
@@ -86,13 +87,14 @@ export function PrivacySettingsButton({ className, children = "Cookie 设置" }:
 }
 
 export function PrivacyConsent({ measurementId, adsenseClientId }: { measurementId: string | null; adsenseClientId: string | null }) {
+  const en = useSiteLanguage() === "en";
   const location = useLocation();
   const admin = location.pathname === "/admin" || location.pathname.startsWith("/admin/");
   const hasAnalytics = Boolean(measurementId);
   const hasAds = Boolean(adsenseClientId);
-  const services = hasAnalytics && hasAds ? "Google Analytics 和 Google AdSense" : hasAnalytics ? "Google Analytics" : "Google AdSense";
-  const purpose = hasAnalytics && hasAds ? "了解访问情况和展示广告" : hasAnalytics ? "了解访问情况" : "展示和衡量广告";
-  const settingsLead = hasAnalytics && hasAds ? "你可以分别控制访问统计和广告。" : hasAnalytics ? "你可以控制是否启用访问统计。" : "你可以控制是否启用广告。";
+  const services = hasAnalytics && hasAds ? (en ? "Google Analytics and Google AdSense" : "Google Analytics 和 Google AdSense") : hasAnalytics ? "Google Analytics" : "Google AdSense";
+  const purpose = hasAnalytics && hasAds ? (en ? "understand readership and show advertising" : "了解访问情况和展示广告") : hasAnalytics ? (en ? "understand readership" : "了解访问情况") : (en ? "show and measure advertising" : "展示和衡量广告");
+  const settingsLead = hasAnalytics && hasAds ? (en ? "You can control analytics and advertising separately. " : "你可以分别控制访问统计和广告。") : hasAnalytics ? (en ? "You can control whether analytics is enabled. " : "你可以控制是否启用访问统计。") : (en ? "You can control whether advertising is enabled. " : "你可以控制是否启用广告。");
   const [ready, setReady] = useState(false);
   const [decided, setDecided] = useState(false);
   const [preferences, setPreferences] = useState<ConsentPreferences>({ analytics: false, ads: false });
@@ -175,19 +177,19 @@ export function PrivacyConsent({ measurementId, adsenseClientId }: { measurement
   if (panel === "notice") {
     return (
       <aside role="dialog" aria-labelledby="privacy-choice-title" aria-describedby="privacy-choice-description" className="fixed inset-x-3 bottom-[calc(64px+env(safe-area-inset-bottom))] z-[70] mx-auto max-w-xl rounded-card border border-line-strong bg-surface p-4 text-[13px] leading-relaxed text-ink-3 shadow-[var(--shadow-pop)] sm:p-5 lg:bottom-5">
-        <p id="privacy-choice-title" className="text-[15px] font-semibold text-ink">你的隐私选择</p>
+        <p id="privacy-choice-title" className="text-[15px] font-semibold text-ink">{en ? "Your privacy choices" : "你的隐私选择"}</p>
         <p id="privacy-choice-description" className="mt-1">
-          我们使用 {services}，用于{purpose}。相关功能默认关闭，拒绝不会影响阅读。
+          {en ? <>We use {services} to {purpose}. These features are off by default; refusing them does not affect reading.</> : <>我们使用 {services}，用于{purpose}。相关功能默认关闭，拒绝不会影响阅读。</>}
         </p>
         <p className="mt-1 text-[12px] text-ink-4">
-          你可以接受全部，或只允许必要功能。详见 <a href="/privacy" className="text-accent hover:underline">隐私说明</a>。
+          {en ? <>You can accept all optional features or keep only essential functions. See the <a href="/privacy?lang=en" className="text-accent hover:underline">privacy notice</a>.</> : <>你可以接受全部，或只允许必要功能。详见 <a href="/privacy" className="text-accent hover:underline">隐私说明</a>。</>}
         </p>
         <div className="mt-3 grid grid-cols-2 gap-2">
-          <button type="button" onClick={() => save({ analytics: false, ads: false })} className="h-10 rounded-full border border-line-strong px-3 text-[13px] font-medium text-ink-2 hover:border-ink-4">拒绝非必要</button>
-          <button type="button" onClick={() => save({ analytics: hasAnalytics, ads: hasAds })} className="h-10 rounded-full bg-accent px-3 text-[13px] font-medium text-accent-contrast hover:bg-accent-ink">接受全部</button>
+          <button type="button" onClick={() => save({ analytics: false, ads: false })} className="h-10 rounded-full border border-line-strong px-3 text-[13px] font-medium text-ink-2 hover:border-ink-4">{en ? "Reject optional" : "拒绝非必要"}</button>
+          <button type="button" onClick={() => save({ analytics: hasAnalytics, ads: hasAds })} className="h-10 rounded-full bg-accent px-3 text-[13px] font-medium text-accent-contrast hover:bg-accent-ink">{en ? "Accept all" : "接受全部"}</button>
         </div>
         <div className="mt-2 text-center">
-          <button type="button" onClick={() => setPanel("settings")} className="text-[12px] text-accent hover:underline">调整选项</button>
+          <button type="button" onClick={() => setPanel("settings")} className="text-[12px] text-accent hover:underline">{en ? "Manage options" : "调整选项"}</button>
         </div>
       </aside>
     );
@@ -198,22 +200,22 @@ export function PrivacyConsent({ measurementId, adsenseClientId }: { measurement
       <section role="dialog" aria-modal="true" aria-labelledby="privacy-settings-title" className="max-h-[calc(100dvh-1.5rem)] w-full max-w-lg overflow-y-auto rounded-card border border-line-strong bg-surface p-5 text-ink-3 shadow-[var(--shadow-pop)]">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 id="privacy-settings-title" className="text-[17px] font-bold text-ink">隐私设置</h2>
-            <p className="mt-1 text-[12.5px] leading-relaxed text-ink-4">{settingsLead}必要功能用于登录管理、安全防护和记住本机设置，无法关闭。</p>
+            <h2 id="privacy-settings-title" className="text-[17px] font-bold text-ink">{en ? "Privacy settings" : "隐私设置"}</h2>
+            <p className="mt-1 text-[12.5px] leading-relaxed text-ink-4">{settingsLead}{en ? "Essential functions support administration, security and local settings and cannot be disabled." : "必要功能用于登录管理、安全防护和记住本机设置，无法关闭。"}</p>
           </div>
-          {decided && <button type="button" onClick={() => setPanel(null)} className="shrink-0 text-[12.5px] text-ink-4 hover:text-ink">关闭</button>}
+          {decided && <button type="button" onClick={() => setPanel(null)} className="shrink-0 text-[12.5px] text-ink-4 hover:text-ink">{en ? "Close" : "关闭"}</button>}
         </div>
         <div className="mt-4 rounded-control border border-line p-3">
-          <PreferenceRow title="必要功能" detail="站点运行、安全防护，以及收藏、已读和外观等本机设置。" checked disabled />
-          {hasAnalytics && <PreferenceRow title="访问统计" detail="通过 Google Analytics 了解页面访问情况，用于改进内容与体验。" checked={draft.analytics} onChange={(analytics) => setDraft({ ...draft, analytics })} />}
-          {hasAds && <PreferenceRow title="广告" detail="通过 Google AdSense 及其合作伙伴展示和衡量广告；同意后可能使用 Cookie 或类似标识符。" checked={draft.ads} onChange={(ads) => setDraft({ ...draft, ads })} />}
+          <PreferenceRow title={en ? "Essential" : "必要功能"} detail={en ? "Site operation, security, bookmarks, read history and appearance settings." : "站点运行、安全防护，以及收藏、已读和外观等本机设置。"} checked disabled />
+          {hasAnalytics && <PreferenceRow title={en ? "Analytics" : "访问统计"} detail={en ? "Google Analytics helps us understand page usage and improve content and experience." : "通过 Google Analytics 了解页面访问情况，用于改进内容与体验。"} checked={draft.analytics} onChange={(analytics) => setDraft({ ...draft, analytics })} />}
+          {hasAds && <PreferenceRow title={en ? "Advertising" : "广告"} detail={en ? "Google AdSense and its partners may use cookies or similar identifiers to show and measure ads after you consent." : "通过 Google AdSense 及其合作伙伴展示和衡量广告；同意后可能使用 Cookie 或类似标识符。"} checked={draft.ads} onChange={(ads) => setDraft({ ...draft, ads })} />}
         </div>
         <p className="mt-3 text-[11.5px] leading-relaxed text-ink-4">
-          你可以随时回到这里修改或撤回同意。EEA/英国用户还可能在广告加载时看到 Google 认证同意管理平台提供的确认提示。详情见 <a href="/privacy" className="text-accent hover:underline">隐私说明</a>。
+          {en ? <>You can return here to change or withdraw consent at any time. EEA and UK readers may also see a confirmation from Google certified consent management. See the <a href="/privacy?lang=en" className="text-accent hover:underline">privacy notice</a>.</> : <>你可以随时回到这里修改或撤回同意。EEA/英国用户还可能在广告加载时看到 Google 认证同意管理平台提供的确认提示。详情见 <a href="/privacy" className="text-accent hover:underline">隐私说明</a>。</>}
         </p>
         <div className="mt-4 flex flex-wrap justify-end gap-2">
-          <button type="button" onClick={() => { if (decided) setPanel(null); else setPanel("notice"); }} className="h-10 rounded-full border border-line-strong px-4 text-[13px] font-medium text-ink-2 hover:border-ink-4">{decided ? "取消" : "返回"}</button>
-          <button type="button" onClick={() => save(draft)} className="h-10 rounded-full bg-accent px-4 text-[13px] font-medium text-accent-contrast hover:bg-accent-ink">保存设置</button>
+          <button type="button" onClick={() => { if (decided) setPanel(null); else setPanel("notice"); }} className="h-10 rounded-full border border-line-strong px-4 text-[13px] font-medium text-ink-2 hover:border-ink-4">{decided ? (en ? "Cancel" : "取消") : (en ? "Back" : "返回")}</button>
+          <button type="button" onClick={() => save(draft)} className="h-10 rounded-full bg-accent px-4 text-[13px] font-medium text-accent-contrast hover:bg-accent-ink">{en ? "Save settings" : "保存设置"}</button>
         </div>
       </section>
     </div>

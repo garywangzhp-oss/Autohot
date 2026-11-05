@@ -1,10 +1,11 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { IntentLink } from "../components/ui/IntentLink";
-import { Link, useLoaderData, useLocation } from "react-router";
+import { useLoaderData, useLocation } from "react-router";
+import { LocalizedLink as Link } from "../features/i18n/SiteLanguage.tsx";
 import type { Route } from "./+types/story";
 import type { StoryDetail, StoryReportView } from "@aihot/contracts/site";
 import { SITE } from "@aihot/site";
-import { edgeTtl, loadOr404, pageExpiresAt } from "../lib/api.server";
+import { edgeTtl, loadOr404, pageExpiresAt, requestLanguage, withLanguage } from "../lib/api.server";
 import { cachedLoader } from "../lib/page-reuse";
 import { breadcrumbLd, pageMeta, titled } from "../lib/seo";
 import { beijingDate, beijingTime } from "@aihot/contracts/time";
@@ -24,17 +25,20 @@ export { shouldRevalidate } from "../lib/page-reuse";
 export const clientLoader = cachedLoader<typeof loader>();
 
 export async function loader({ params, request }: Route.LoaderArgs) {
-  const story = await loadOr404<StoryDetail>(`/api/site/stories/${encodeURIComponent(params.publicId)}`, { signal: request.signal, merged: (id) => `/story/${id}` });
+  const lang = requestLanguage(request);
+  const story = await loadOr404<StoryDetail>(withLanguage(`/api/site/stories/${encodeURIComponent(params.publicId)}`, lang), { signal: request.signal, merged: (id) => withLanguage(`/story/${id}`, lang) });
   return { story, expiresAt: pageExpiresAt(300) };
 }
 
-export function meta({ loaderData }: Route.MetaArgs) {
-  if (!loaderData) return [{ title: titled("事件不存在") }, { name: "robots", content: "noindex" }];
+export function meta({ loaderData, location }: Route.MetaArgs) {
+  const en = new URLSearchParams(location.search).get("lang") === "en";
+  if (!loaderData) return [{ title: titled(en ? "Event not found" : "事件不存在") }, { name: "robots", content: "noindex" }];
   const s = loaderData.story;
   return pageMeta({
-    title: s.title,
-    description: (s.digest ?? s.summary)?.slice(0, 150) ?? `${s.sourceCount} 个报道来源 ${s.reportCount} 篇报道，完整时间线与最新进展。`,
-    path: `/story/${s.publicId}`,
+    title: en ? `${s.title} · AutoHot` : s.title,
+    rawTitle: en,
+    description: (s.digest ?? s.summary)?.slice(0, 150) ?? (en ? `${s.reportCount} reports from ${s.sourceCount} sources, with a full timeline and latest developments.` : `${s.sourceCount} 个报道来源 ${s.reportCount} 篇报道，完整时间线与最新进展。`),
+    path: en ? `/story/${s.publicId}?lang=en` : `/story/${s.publicId}`,
     image: `/og/stories/${s.publicId}.png`,
     type: "article",
     jsonLd: breadcrumbLd([{ name: SITE.name, path: "/" }, { name: "热点榜", path: "/hot" }, { name: s.title, path: `/story/${s.publicId}` }]),

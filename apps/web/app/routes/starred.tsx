@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Link, useLocation } from "react-router";
+import { useLocation } from "react-router";
+import { LocalizedLink as Link } from "../features/i18n/SiteLanguage.tsx";
 import type { ItemAvailability } from "@aihot/contracts/site";
 import { SITE } from "@aihot/site";
 import { Presence } from "../components/ui/Presence";

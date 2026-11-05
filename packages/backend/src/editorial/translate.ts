@@ -49,7 +49,7 @@ export interface TranslateResult {
 const isChinese = (language: string | null, sample: string) => language === "zh" || (/[一-鿿]/.test(sample.slice(0, 400)) && language !== "en");
 
 /** Leaf text blocks of a sanitised body, in document order, skipping code. */
-function segmentsOf($: cheerio.CheerioAPI): Element[] {
+export function segmentsOf($: cheerio.CheerioAPI): Element[] {
   const out: Element[] = [];
   const visit = (nodes: AnyNode[]) => {
     for (const node of nodes) {
@@ -58,7 +58,7 @@ function segmentsOf($: cheerio.CheerioAPI): Element[] {
       if (el.name === "pre" || el.name === "code") continue;
       const hasBlockChild = el.children.some((c) => c.type === "tag" && CONTAINER.test((c as Element).name));
       if (BLOCK.has(el.name) && !hasBlockChild) {
-        if (/[A-Za-zÀ-ɏЀ-ӿ぀-ヿ]/.test($(el).text())) out.push(el);
+        if (/[A-Za-zÀ-ɏЀ-ӿ぀-ヿ\u4e00-\u9fff]/.test($(el).text())) out.push(el);
         continue;
       }
       visit(el.children);

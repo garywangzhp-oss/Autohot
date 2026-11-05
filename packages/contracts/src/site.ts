@@ -2,6 +2,9 @@
 // but it is served from the same public read layer as v1, RSS and MCP.
 import type { CategoryKey, ChannelKey } from "./taxonomy.ts";
 
+/** Languages the first-party website can render. Public v1, RSS and MCP remain Chinese. */
+export type SiteLanguage = "zh" | "en";
+
 export interface SourceRef {
   /** The name readers see (publication/rules.ts publicSourceName), as is every source name here. */
   name: string;
@@ -142,7 +145,7 @@ export interface SiteItemDetail extends ItemSummary {
   readingMode: "full" | "summary-only";
   author: string | null;
   /** Whitelisted HTML of the language shown; the other one is null. */
-  body: { zh: string | null; original: string | null; zhKind: "translation" | "original" | null; complete: boolean } | null;
+  body: { zh: string | null; original: string | null; en: string | null; zhKind: "translation" | "original" | null; complete: boolean } | null;
   outline: OutlineEntry[];
   relatedStories: StoryRef[];
   /** The topics the report belongs to. */
@@ -151,7 +154,8 @@ export interface SiteItemDetail extends ItemSummary {
   markdownAvailable: boolean;
   group: GroupInfo | null;
   hasTranslation: boolean;
-  bodyLanguage: "zh" | "original";
+  hasEnglishTranslation: boolean;
+  bodyLanguage: "zh" | "original" | "en";
 }
 
 /** A fact's public reports under the list's filters: what "另有 N 家信源报道" opens. */

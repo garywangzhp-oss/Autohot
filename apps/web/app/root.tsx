@@ -1,7 +1,5 @@
-import {
-  isRouteErrorResponse, Link, Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData, useLocation, useNavigation, useRouteError, useRouteLoaderData,
-  type ShouldRevalidateFunction,
-} from "react-router";
+import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData, useLocation, useNavigation, useRouteError, useRouteLoaderData, type ShouldRevalidateFunction } from "react-router";
+import { LocalizedLink as Link } from "./features/i18n/SiteLanguage.tsx";
 import type { SiteMeta } from "@aihot/contracts/site";
 import { SITE } from "@aihot/site";
 import { RingMark } from "@aihot/site/brand/Logo.tsx";
@@ -14,6 +12,7 @@ import { PullToRefresh } from "./components/shell/PullToRefresh";
 import { usePageTransition } from "./components/shell/transitions";
 import { SearchOverlay } from "./features/search/SearchOverlay";
 import { PrivacyConsent } from "./features/analytics/PrivacyConsent";
+import { SiteLanguageProvider } from "./features/i18n/SiteLanguage";
 import { BackToTop, NavigationProgress } from "./components/shell/Chrome";
 import { buttonClass } from "./components/ui/Controls";
 import { rememberPage, THEME_BOOT_SCRIPT, useThemeSync } from "./lib/local-state";
@@ -50,9 +49,11 @@ export const shouldRevalidate: ShouldRevalidateFunction = () => false;
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const site = useRouteLoaderData<typeof loader>("root");
+  const { search } = useLocation();
+  const lang = new URLSearchParams(search).get("lang") === "en" ? "en" : "zh";
   const [documentRelease] = useState(site?.release ?? null);
   return (
-    <html lang={SITE.locale} suppressHydrationWarning>
+    <html lang={lang === "en" ? "en" : SITE.locale} suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         {documentRelease && <meta name="aihot-release" content={documentRelease} />}
@@ -66,10 +67,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
-        {children}
-        <PrivacyConsent measurementId={site?.analyticsId ?? null} adsenseClientId={SITE.adsenseClientId} />
-        <ScrollRestoration getKey={(location) => location.key} />
-        <Scripts />
+        <SiteLanguageProvider lang={lang}>
+          {children}
+          <PrivacyConsent measurementId={site?.analyticsId ?? null} adsenseClientId={SITE.adsenseClientId} />
+          <ScrollRestoration getKey={(location) => location.key} />
+          <Scripts />
+        </SiteLanguageProvider>
       </body>
     </html>
   );

@@ -2,13 +2,13 @@ import { data, useLoaderData } from "react-router";
 import type { Route } from "./+types/report-detail";
 import type { ReportDetail, ReportNavigationResponse, ReportKind } from "@aihot/contracts/site";
 import { SITE, subjectAfter, withSubject } from "@aihot/site";
-import { apiGet, edgeTtl, loadOr404, pageExpiresAt } from "../lib/api.server";
+import { apiGet, edgeTtl, loadOr404, pageExpiresAt, requestLanguage, withLanguage } from "../lib/api.server";
 import { cachedLoader } from "../lib/page-reuse";
 import { pageMeta, reportLd, titled } from "../lib/seo";
 import { beijingDate } from "@aihot/contracts/time";
 import { ReportLayout } from "../features/report/ReportLayout";
 import { ReportPaper, reportOutline } from "../features/report/ReportPaper";
-import { KIND_LABEL, feedLink, kindFromPath } from "../features/report/format";
+import { KIND_LABEL, feedLink, kindFromPath, kindLabel } from "../features/report/format";
 import type { Screen } from "../components/shell/screens";
 import { loadParts } from "../site-modules";
 
@@ -27,20 +27,23 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const kind = kindFromPath(new URL(request.url).pathname);
   const key = params.key ?? "";
   if (!PATTERN[kind].test(key)) throw data({ message: "not_found" }, { status: 404 });
+  const lang = requestLanguage(request);
   const [report, { items: index }] = await Promise.all([
-    loadOr404<ReportDetail>(`/api/site/reports/${kind}/${key}`, { signal: request.signal }),
-    apiGet<ReportNavigationResponse>(`/api/site/reports/${kind}/navigation/${key}`, { signal: request.signal }),
+    loadOr404<ReportDetail>(withLanguage(`/api/site/reports/${kind}/${key}`, lang), { signal: request.signal }),
+    apiGet<ReportNavigationResponse>(withLanguage(`/api/site/reports/${kind}/navigation/${key}`, lang), { signal: request.signal }),
   ]);
   return { report, index, today: beijingDate(Date.now()), expiresAt: pageExpiresAt(3600) };
 }
 
-export function meta({ loaderData }: Route.MetaArgs) {
-  if (!loaderData) return [{ title: titled("报告不存在") }, { name: "robots", content: "noindex" }];
+export function meta({ loaderData, location }: Route.MetaArgs) {
+  const en = new URLSearchParams(location.search).get("lang") === "en";
+  if (!loaderData) return [{ title: titled(en ? "Report not found" : "报告不存在") }, { name: "robots", content: "noindex" }];
   const r = loaderData.report;
-  const description = r.lead?.leadParagraph ?? r.overview?.slice(0, 150) ?? `${SITE.name} ${r.key} ${subjectAfter("的", KIND_LABEL[r.kind])}。`;
-  const path = `/${r.kind}/${r.key}`;
+  const description = r.lead?.leadParagraph ?? r.overview?.slice(0, 150) ?? (en ? `${kindLabel(r.kind, "en")} automotive briefing for ${r.key}.` : `${SITE.name} ${r.key} ${subjectAfter("的", KIND_LABEL[r.kind])}。`);
+  const path = en ? `/${r.kind}/${r.key}?lang=en` : `/${r.kind}/${r.key}`;
   return [...pageMeta({
-    title: r.kind === "daily" ? `${withSubject("日报")} ${r.key}` : r.title.replace(`${SITE.name} ${KIND_LABEL[r.kind]}`, withSubject(KIND_LABEL[r.kind])),
+    title: en ? `${r.title} · AutoHot` : (r.kind === "daily" ? `${withSubject("日报")} ${r.key}` : r.title.replace(`${SITE.name} ${KIND_LABEL[r.kind]}`, withSubject(KIND_LABEL[r.kind]))),
+    rawTitle: en,
     description,
     path,
     image: `/og/reports/${r.kind}/${r.key}.png`,

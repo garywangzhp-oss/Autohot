@@ -2,7 +2,7 @@ import { useLoaderData } from "react-router";
 import { IntentLink } from "../components/ui/IntentLink";
 import type { HotEntryView, HotResponse } from "@aihot/contracts/site";
 import { subjectAfter, withSubject } from "@aihot/site";
-import { edgeTtl, loadOr404, pageExpiresAt } from "../lib/api.server";
+import { edgeTtl, loadOr404, pageExpiresAt, requestLanguage, withLanguage } from "../lib/api.server";
 import { cachedLoader } from "../lib/page-reuse";
 import { pageMeta } from "../lib/seo";
 import { monthDayTime } from "../lib/format";
@@ -14,23 +14,28 @@ import { Faces } from "../features/hot/Faces";
 import { Delta } from "../features/hot/Delta";
 import { PhoneBar } from "../components/shell/PhoneBar";
 import type { Screen } from "../components/shell/screens";
+import { useSiteLanguage } from "../features/i18n/SiteLanguage";
+import type { Route } from "./+types/hot";
 
 export const handle: Screen = { tab: "hot", name: "热点" };
 export { shouldRevalidate } from "../lib/page-reuse";
 export const clientLoader = cachedLoader<typeof loader>();
 
 export async function loader({ request }: { request: Request }) {
-  return { hot: await loadOr404<HotResponse>("/api/site/hot", { signal: request.signal }), expiresAt: pageExpiresAt(120) };
+  return { hot: await loadOr404<HotResponse>(withLanguage("/api/site/hot", requestLanguage(request)), { signal: request.signal }), expiresAt: pageExpiresAt(120) };
 }
 
-export function meta() {
+export function meta({ location }: Route.MetaArgs) {
+  const en = new URLSearchParams(location.search).get("lang") === "en";
   return pageMeta({
-    title: withSubject("热点榜"),
-    description: `${subjectAfter("过去 48 小时", "圈")}讨论最多的 10 个事件：热度指数、趋势与组成热度的公开来源。`,
-    path: "/hot",
+    title: en ? "Trending automotive stories · AutoHot" : withSubject("热点榜"),
+    rawTitle: en,
+    description: en ? "The ten most-discussed automotive stories of the past 48 hours, with heat, trend and public sources." : `${subjectAfter("过去 48 小时", "圈")}讨论最多的 10 个事件：热度指数、趋势与组成热度的公共来源。`,
+    path: en ? "/hot?lang=en" : "/hot",
     image: "/og/pages/hot.png",
   });
 }
+
 
 export function headers() {
   return edgeTtl(120);
@@ -48,17 +53,18 @@ const pad = (rank: number) => String(rank).padStart(2, "0");
 
 /** "某媒体、某账号 等 4 个来源 · 7 位参与者". */
 function Voices({ e }: { e: HotEntryView }) {
+  const en = useSiteLanguage() === "en";
   const names = e.sourceNames.slice(0, 2);
   return (
     <span className="min-w-0 text-[12.5px] leading-snug text-ink-4">
       {/* Lines break between the phrases, never inside one. */}
       <span className="whitespace-nowrap">
         {names.length > 0 && <span className="text-ink-3">{names.join("、")}</span>}
-        {e.sourceCount > names.length ? ` 等 ${e.sourceCount} 个来源` : names.length ? " 报道" : `${e.sourceCount} 个来源`}
+        {e.sourceCount > names.length ? (en ? ` + ${e.sourceCount - names.length} more sources` : ` 等 ${e.sourceCount} 个来源`) : names.length ? (en ? " reports" : " 报道") : (en ? `${e.sourceCount} sources` : `${e.sourceCount} 个来源`)}
       </span>
       <span className="mx-1.5 text-line-strong">·</span>
       <span className="whitespace-nowrap">
-        <span className="num">{e.participantCount}</span> 位参与者
+        <span className="num">{e.participantCount}</span>{en ? " participants" : " 位参与者"}
       </span>
     </span>
   );
@@ -109,6 +115,7 @@ function HeatPanel({ e }: { e: HotEntryView }) {
 
 /** No. 1: the event people are talking about most, with its picture, digest, latest turn and day of heat. */
 function Lead({ e }: { e: HotEntryView }) {
+  const en = useSiteLanguage() === "en";
   const panel = !e.cover && e.spark.filter((v) => v !== null).length >= 3;
   return (
     <article className="card card-hover group relative flex flex-col overflow-hidden p-5 sm:p-6">
@@ -162,6 +169,7 @@ function Lead({ e }: { e: HotEntryView }) {
 
 /** No. 2 and 3: the same card, smaller, without the picture. */
 function Runner({ e }: { e: HotEntryView }) {
+  const en = useSiteLanguage() === "en";
   return (
     <article className="card card-hover group relative flex flex-col px-5 py-4">
       <div className="flex items-center gap-2.5">
@@ -177,8 +185,8 @@ function Runner({ e }: { e: HotEntryView }) {
         <div className="flex min-w-0 flex-col gap-1.5">
           <Faces participants={e.participants} total={e.participantCount} size={20} />
           <span className="text-[12px] text-ink-4">
-            <span className="whitespace-nowrap"><span className="num">{e.sourceCount}</span> 个来源</span> ·{" "}
-            <span className="whitespace-nowrap"><span className="num">{e.participantCount}</span> 位参与者</span>
+            <span className="whitespace-nowrap"><span className="num">{e.sourceCount}</span>{en ? " sources" : " 个来源"}</span> ·{" "}
+            <span className="whitespace-nowrap"><span className="num">{e.participantCount}</span>{en ? " participants" : " 位参与者"}</span>
           </span>
         </div>
         <div className="flex items-end gap-3">
@@ -192,6 +200,7 @@ function Runner({ e }: { e: HotEntryView }) {
 
 /** No. 4–10: a row each, with a line of the digest, faces, the day of heat and the index. */
 function Row({ e }: { e: HotEntryView }) {
+  const en = useSiteLanguage() === "en";
   return (
     <li className="group relative grid grid-cols-[30px_minmax(0,1fr)] items-start gap-x-3 px-4 py-3 transition-colors hover:bg-bg-sunk/70 sm:px-5 lg:grid-cols-[44px_minmax(0,1fr)_auto_104px_76px] lg:items-center lg:gap-x-6 lg:px-6 lg:py-3.5 dark:hover:bg-bg-muted/40">
       <span className={`mono text-[16px] font-semibold leading-[24px] lg:text-[17px] ${rankColor(e.rank)}`} aria-label={`热度排名第 ${e.rank} 位`}>
@@ -210,7 +219,7 @@ function Row({ e }: { e: HotEntryView }) {
         <div className="mt-2 flex items-center gap-2.5 lg:hidden">
           <Faces participants={e.participants} total={e.participantCount} size={20} />
           <span className="text-[12px] text-ink-4">
-            <span className="num">{e.sourceCount}</span> 个来源
+            <span className="num">{e.sourceCount}</span>{en ? " sources" : " 个来源"}
           </span>
           <span className="ml-auto flex items-center gap-2">
             <span className="mono text-[17px] font-semibold leading-none text-ink">{Math.round(e.heat)}</span>
@@ -240,21 +249,22 @@ function showMethod() {
 
 export default function HotPage() {
   const { hot } = useLoaderData<typeof loader>();
+  const en = useSiteLanguage() === "en";
   const [lead, ...rest] = hot.entries;
   const runners = rest.slice(0, 2);
   const others = rest.slice(2);
   return (
     <div className="pb-10">
       <PhoneBar
-        title="热点"
+        title={en ? "Trending" : "热点"}
         large
         sub={
           <>
-            过去 {hot.windowHours}{`${subjectAfter(" 小时", "圈")}讨论最多的 `}{hot.entries.length || 10} 件事
+            {en ? `${hot.entries.length || 10} most-discussed stories in the past ${hot.windowHours} hours` : <>过去 {hot.windowHours}{`${subjectAfter(" 小时", "圈")}讨论最多的 `}{hot.entries.length || 10} 件事</>}
             {hot.computedAt && (
               <>
                 {" · "}
-                <span className="num">{monthDayTime(hot.computedAt)}</span> 更新
+                <span className="num">{monthDayTime(hot.computedAt)}</span>{en ? " updated" : " 更新"}
               </>
             )}
           </>
@@ -272,25 +282,25 @@ export default function HotPage() {
               <span className="absolute inline-flex size-full animate-ping rounded-full bg-hot opacity-30" />
               <span className="relative inline-flex size-2 rounded-full bg-hot" />
             </span>
-            实时热度
+            {en ? "LIVE RANKING" : "实时热度"}
           </div>
-          <h1 className="mt-1.5 text-[24px] font-bold leading-[1.3] tracking-[-0.01em] text-ink lg:text-[26px]">{withSubject("热点榜")}</h1>
-          <p className="mt-1.5 text-[13.5px] text-ink-3">过去 {hot.windowHours}{` 小时，${withSubject("圈")}讨论最多的 `}{hot.entries.length || 10} 件事</p>
+          <h1 className="mt-1.5 text-[24px] font-bold leading-[1.3] tracking-[-0.01em] text-ink lg:text-[26px]">{en ? "Trending automotive stories" : withSubject("热点榜")}</h1>
+          <p className="mt-1.5 text-[13.5px] text-ink-3">{en ? `${hot.entries.length || 10} stories with the most discussion in the past ${hot.windowHours} hours` : <>过去 {hot.windowHours}{` 小时，${withSubject("圈")}讨论最多的 `}{hot.entries.length || 10} 件事</>}</p>
         </div>
         {hot.computedAt && (
           <p className="text-[12px] text-ink-4">
-            <span className="num">{monthDayTime(hot.computedAt)}</span> 更新 · 按讨论热度排序
+            <span className="num">{monthDayTime(hot.computedAt)}</span>{en ? " updated" : " 更新"} · 按讨论热度排序
           </p>
         )}
       </header>
 
       {!lead ? (
         <div className="card rounded-sheet">
-          <EmptyState title="暂时没有热点">还没有足够多来源共同讨论的事件。</EmptyState>
+          <EmptyState title={en ? "No trending stories yet" : "暂时没有热点"}>{en ? "There are not yet enough independent sources discussing the same story." : "还没有足够多来源共同讨论的事件。"}</EmptyState>
         </div>
       ) : (
         <>
-          <section aria-label="热度前三" className="grid grid-cols-1 gap-3 lg:grid-cols-12 lg:gap-4">
+          <section aria-label={en ? "Top three stories" : "热度前三"} className="grid grid-cols-1 gap-3 lg:grid-cols-12 lg:gap-4">
             <div className="grid grid-cols-1 lg:col-span-7 lg:row-span-2 xl:col-span-8">
               <Lead e={lead} />
             </div>
@@ -302,12 +312,12 @@ export default function HotPage() {
           </section>
 
           {others.length > 0 && (
-            <section aria-label="其余热点" className="mt-6 lg:mt-7">
+            <section aria-label={en ? "Other trending stories" : "其余热点"} className="mt-6 lg:mt-7">
               <div className="mb-3 flex items-baseline justify-between px-1">
                 <h2 className="text-[15px] font-semibold text-ink">
                   继续看 <span className="num font-normal text-ink-4">No.{pad(others[0]!.rank)}–{pad(others[others.length - 1]!.rank)}</span>
                 </h2>
-                <span className="hidden text-[12px] text-ink-4 lg:block">参与者 · 24 小时走势 · 热度指数</span>
+                <span className="hidden text-[12px] text-ink-4 lg:block">{en ? "Participants · 24-hour trend · heat" : "参与者 · 24 小时走势 · 热度指数"}</span>
               </div>
               <ol className="card divide-y divide-line-soft overflow-hidden">
                 {others.map((e) => (
@@ -322,7 +332,7 @@ export default function HotPage() {
       <details id="hot-method" className="disclosure group/method mt-8 scroll-mt-[calc(var(--bar-h)+16px)] text-[12px] text-ink-4">
         <summary className="flex items-center gap-1.5 py-1 transition-colors hover:text-ink-2">
           <IconInfo size={15} />
-          热度是怎么算的？
+          {en ? "How is heat calculated?" : "热度是怎么算的？"}
           <span className="ml-auto inline-flex items-center gap-0.5">
             <span className="group-open/method:hidden">了解榜单</span>
             <span className="hidden group-open/method:inline">收起</span>

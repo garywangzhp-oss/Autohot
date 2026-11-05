@@ -1,8 +1,9 @@
 import { REPORTS, SITE } from "@aihot/site";
-import { Link, redirect, useLoaderData } from "react-router";
+import { redirect, useLoaderData } from "react-router";
+import { LocalizedLink as Link } from "../features/i18n/SiteLanguage.tsx";
 import type { Route } from "./+types/topic";
 import type { TopicPage } from "@aihot/contracts/site";
-import { edgeTtl, loadOr404, pageExpiresAt } from "../lib/api.server";
+import { edgeTtl, loadOr404, pageExpiresAt, requestLanguage, withLanguage } from "../lib/api.server";
 import { cachedLoader } from "../lib/page-reuse";
 import { breadcrumbLd, pageMeta, titled, topicLd } from "../lib/seo";
 import { DayList, Pagination } from "../features/feed/DayList";
@@ -13,6 +14,7 @@ import { beijingDate } from "@aihot/contracts/time";
 import { monthDay, monthDayTime } from "../lib/format";
 import { PhoneBar } from "../components/shell/PhoneBar";
 import type { Screen } from "../components/shell/screens";
+import { useSiteLanguage } from "../features/i18n/SiteLanguage";
 import type { TopicPagePart } from "../modules";
 import { loadParts } from "../site-modules";
 
@@ -30,7 +32,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   if (params.page !== undefined && (!/^\d+$/.test(params.page) || page < 1)) throw new Response("Not found", { status: 404 });
   // Page 1 lives at the topic's own address (308).
   if (params.page === "1") throw redirect(`/topics/${params.slug}`, 308);
-  const data = await loadOr404<TopicPage>(`/api/site/topics/${encodeURIComponent(params.slug)}?page=${page}`, { signal: request.signal });
+  const data = await loadOr404<TopicPage>(withLanguage(`/api/site/topics/${encodeURIComponent(params.slug)}?page=${page}`, requestLanguage(request)), { signal: request.signal });
   return { data, expiresAt: pageExpiresAt(60) };
 }
 
@@ -55,19 +57,22 @@ function description(data: TopicPage, parts: Part[]): string {
   return text.length > 150 ? `${text.slice(0, 149)}…` : text;
 }
 
-export function meta({ loaderData }: Route.MetaArgs) {
-  if (!loaderData) return [{ title: titled("主题不存在") }, { name: "robots", content: "noindex" }];
+export function meta({ loaderData, location }: Route.MetaArgs) {
+  const en = new URLSearchParams(location.search).get("lang") === "en";
+  if (!loaderData) return [{ title: titled(en ? "Topic not found" : "主题不存在") }, { name: "robots", content: "noindex" }];
   const data = loaderData.data;
   const { topic, page } = data;
   const parts = partsOf(data);
-  const path = page > 1 ? `/topics/${topic.slug}/page/${page}` : `/topics/${topic.slug}`;
-  const text = page > 1 ? `${topic.name}的精选归档第 ${page} 页。${topic.definition}` : description(data, parts);
-  const crumbs = breadcrumbLd([{ name: SITE.name, path: "/" }, { name: "主题", path: "/topics" }, { name: topic.name, path: `/topics/${topic.slug}` }]);
+  const basePath = page > 1 ? `/topics/${topic.slug}/page/${page}` : `/topics/${topic.slug}`;
+  const path = en ? `${basePath}?lang=en` : basePath;
+  const text = en ? (page > 1 ? `${topic.name} selected archive, page ${page}. ${topic.definition}` : topic.definition) : (page > 1 ? `${topic.name}的精选归档第 ${page} 页。${topic.definition}` : description(data, parts));
+  const crumbs = breadcrumbLd([{ name: en ? "AutoHot" : SITE.name, path: "/" }, { name: en ? "Topics" : "主题", path: en ? "/topics?lang=en" : "/topics" }, { name: topic.name, path }]);
   return pageMeta({
     title: page > 1
-      ? `${topic.name} 精选 · 第 ${page} 页`
-      : `${topic.name} 最新动态${parts.length ? `与${parts.map((p) => p.name).join("、")}` : ""}`,
+      ? (en ? `${topic.name} selection · Page ${page}` : `${topic.name} 精选 · 第 ${page} 页`)
+      : (en ? `${topic.name}: latest stories${parts.length ? ` and ${parts.map((p) => p.name).join(", ")}` : ""}` : `${topic.name} 最新动态${parts.length ? `与${parts.map((p) => p.name).join("、")}` : ""}`),
     description: text,
+    rawTitle: en,
     path,
     image: `/og/topics/${topic.slug}.png`,
     noindex: !topic.indexable,
@@ -88,6 +93,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
 
 export default function TopicRoute() {
   const { data } = useLoaderData<typeof loader>();
+  const en = useSiteLanguage() === "en";
   const { topic, items, page, pageCount, pageSize } = data;
   const parts = partsOf(data);
   const href = (p: number) => (p <= 1 ? `/topics/${topic.slug}` : `/topics/${topic.slug}/page/${p}`);
@@ -95,9 +101,9 @@ export default function TopicRoute() {
   const last = first + items.length - 1;
   return (
     <div className="pb-6">
-      <PhoneBar back={{ to: "/topics", label: "全部主题" }} title={topic.name} />
+      <PhoneBar back={{ to: "/topics", label: en ? "All topics" : "全部主题" }} title={topic.name} />
       <Link to="/topics" className="hidden items-center gap-1.5 py-2 text-[13px] text-ink-3 transition-colors hover:text-accent lg:inline-flex">
-        <IconArrowLeft size={14} /> 返回全部主题
+        <IconArrowLeft size={14} /> {en ? "Back to all topics" : "返回全部主题"}
       </Link>
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 pb-5 pt-3 lg:pt-1">
         <div className="min-w-0 max-w-[760px]">
@@ -106,7 +112,7 @@ export default function TopicRoute() {
             {topic.brand && <BrandMark brand={topic.brand} size={34} />}
             <span>
               {topic.name}{" "}
-              <span className="whitespace-nowrap font-semibold text-ink-4">最新动态</span>
+              <span className="whitespace-nowrap font-semibold text-ink-4">{en ? "LATEST" : "最新动态"}</span>
             </span>
           </h1>
           <p className="mt-1.5 text-pretty text-[13.5px] leading-relaxed text-ink-3">{topic.definition}</p>
@@ -115,10 +121,10 @@ export default function TopicRoute() {
               <span className="num font-semibold text-ink-2">{topic.total.toLocaleString("zh-CN")}</span>{` ${REPORTS.metricUnits.selectedCount}`}
             </span>
             <span>
-              近 30 天 <span className="num font-semibold text-ink-2">{topic.recent.toLocaleString("zh-CN")}</span> 条
+              {en ? "Past 30 days " : "近 30 天 "}<span className="num font-semibold text-ink-2">{topic.recent.toLocaleString(en ? "en-US" : "zh-CN")}</span>{en ? " stories" : " 条"}
             </span>
             <span>
-              共收录 <span className="num font-semibold text-ink-2">{topic.poolTotal.toLocaleString("zh-CN")}</span> 条
+              {en ? "Indexed " : "共收录 "}<span className="num font-semibold text-ink-2">{topic.poolTotal.toLocaleString(en ? "en-US" : "zh-CN")}</span>{en ? " stories" : " 条"}
             </span>
           </p>
         </div>
@@ -140,7 +146,7 @@ export default function TopicRoute() {
       <h2 className="sr-only">{page === 1 ? `${topic.name}的精选` : `精选归档 · 第 ${page} 页`}</h2>
       {items.length === 0 ? (
         <div className="lg:card">
-          <EmptyState title="这个主题暂时还没有精选内容" />
+          <EmptyState title={en ? "No selected stories under this topic yet" : "这个主题暂时还没有精选内容"} />
         </div>
       ) : (
         <DayList items={items} headerAside={<span className="num whitespace-nowrap">第 {first}–{last} 条<span className="hidden sm:inline"> · 共 {topic.total.toLocaleString("zh-CN")} 条</span></span>} />

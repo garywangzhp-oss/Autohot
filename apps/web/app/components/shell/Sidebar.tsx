@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router";
+import { useLocation } from "react-router";
 import { SITE } from "@aihot/site";
 import { Wordmark } from "@aihot/site/brand/Logo.tsx";
 import { useChangelogSeen } from "../../lib/local-state";
@@ -7,6 +7,7 @@ import { sidebar, sidebarIsActive, type NavItem } from "./nav";
 import { ThemeSwitch } from "./ThemeSwitch";
 import { IconGithub } from "../icons";
 import { PrivacySettingsButton } from "../../features/analytics/PrivacyConsent";
+import { LocalizedLink as Link, SiteLanguageToggle, useSiteLanguage, useSiteText } from "../../features/i18n/SiteLanguage";
 
 /** True while the changelog has an entry newer than the one this reader last opened. */
 export function useChangelogDot(latestVersion: string | null): boolean {
@@ -41,13 +42,15 @@ function SideLink({ item, dot }: { item: NavItem; dot: boolean }) {
 
 export function Sidebar({ changelogVersion }: { changelogVersion: string | null }) {
   const dot = useChangelogDot(changelogVersion);
+  const text = useSiteText();
+  const lang = useSiteLanguage();
   return (
     <aside className="sticky top-0 hidden h-dvh w-[180px] shrink-0 flex-col border-r border-line bg-sidebar px-3 pb-3.5 pt-6 lg:flex">
       <Link to="/" className="mb-4 flex h-[52px] items-center px-1 text-ink" aria-label={`${SITE.name} 首页`}>
         <Wordmark size={34} />
       </Link>
       <nav className="scrollbar-thin -mx-1 flex-1 overflow-y-auto px-1" aria-label="主导航">
-        {sidebar().map((section) => (
+        {sidebar(lang).map((section) => (
           <div key={section.title}>
             <div className="px-2.5 pb-1 pt-3.5 text-[11px] text-ink-4">{section.title}</div>
             <div className="flex flex-col gap-1">
@@ -70,8 +73,9 @@ export function Sidebar({ changelogVersion }: { changelogVersion: string | null 
             GitHub 开源
           </a>
         )}
+        <SiteLanguageToggle className="mx-1 w-[calc(100%-0.5rem)]" />
         <ThemeSwitch className="mx-1" />
-        <PrivacySettingsButton className="block px-2 text-left text-[10px] text-ink-4 hover:text-ink-3">Cookie 设置</PrivacySettingsButton>
+        <PrivacySettingsButton className="block px-2 text-left text-[10px] text-ink-4 hover:text-ink-3">{text.cookie}</PrivacySettingsButton>
         {SITE.icp && (
           <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" className="block px-2 text-[10px] text-ink-4 hover:text-ink-3">
             {SITE.icp}

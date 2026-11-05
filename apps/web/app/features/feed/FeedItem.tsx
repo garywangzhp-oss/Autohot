@@ -2,7 +2,7 @@
 // the time in the source line, the bookmark at hand, the reason in one line and duplicate reports
 // behind one button that opens a sheet. One markup, two presentations.
 import { memo } from "react";
-import { Link } from "react-router";
+import { LocalizedLink as Link } from "../i18n/SiteLanguage.tsx";
 import { IntentLink } from "../../components/ui/IntentLink";
 import type { GroupInfo, FeedItemSummary, TimelineFilters } from "@aihot/contracts/site";
 import { ITEM_COPY } from "@aihot/site";
@@ -32,8 +32,8 @@ export const FeedItem = memo(function FeedItem({ item, group, filters, read = fa
   const t = FEED_TEXT[lang];
   const english = lang === "en";
   const isX = item.channel === "x" && !!item.x;
-  const title = english ? item.originalTitle || item.title : item.title;
-  const summary = english ? item.originalSummary || item.summary : item.summary;
+  const title = item.title;
+  const summary = item.summary;
   const open = () => {
     rememberPreview(item);
     onOpen?.(item.id);

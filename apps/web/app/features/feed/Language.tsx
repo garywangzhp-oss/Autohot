@@ -2,18 +2,21 @@
 // stays Chinese, while the home page can show source titles/summaries and English chrome.
 import { createContext, useContext, type ReactNode } from "react";
 import type { CategoryKey } from "@aihot/contracts/taxonomy";
-import { CATEGORY_LABELS } from "@aihot/contracts/taxonomy";
+import { CATEGORY_LABELS, CATEGORY_LABELS_EN } from "@aihot/contracts/taxonomy";
+import { SiteLanguageToggle, useSiteLanguage } from "../i18n/SiteLanguage";
 
 export type FeedLanguage = "zh" | "en";
 
-const LanguageContext = createContext<FeedLanguage>("zh");
+const LanguageContext = createContext<FeedLanguage | null>(null);
 
 export function FeedLanguageProvider({ lang, children }: { lang: FeedLanguage; children: ReactNode }) {
   return <LanguageContext.Provider value={lang}>{children}</LanguageContext.Provider>;
 }
 
 export function useFeedLanguage(): FeedLanguage {
-  return useContext(LanguageContext);
+  const local = useContext(LanguageContext);
+  const site = useSiteLanguage();
+  return local ?? site;
 }
 
 export const FEED_TEXT = {
@@ -79,39 +82,10 @@ export const FEED_TEXT = {
   },
 } as const;
 
-const EN_CATEGORY_LABELS: Record<CategoryKey, string> = {
-  "new-models": "New models",
-  sales: "Sales & market",
-  electrification: "Electrification",
-  autonomous: "Autonomous driving",
-  technology: "Technology & software",
-  "supply-chain": "Supply chain",
-  manufacturing: "Manufacturing",
-  companies: "Companies & executives",
-  industry: "Industry trends",
-  policy: "Policy & regulation",
-  finance: "Finance & capital",
-  energy: "Energy & charging",
-  mobility: "Mobility",
-  motorsport: "Motorsport",
-  review: "Reviews",
-  opinion: "Opinion",
-};
-
 export function categoryLabel(lang: FeedLanguage, key: CategoryKey): string {
-  return lang === "en" ? EN_CATEGORY_LABELS[key] : CATEGORY_LABELS[key];
+  return lang === "en" ? CATEGORY_LABELS_EN[key] : CATEGORY_LABELS[key];
 }
 
 export function HomeLanguageToggle() {
-  const lang = useFeedLanguage();
-  const next = lang === "en" ? "/" : "/?lang=en";
-  return (
-    <a
-      href={next}
-      className="inline-flex h-8 shrink-0 items-center rounded-full border border-line-strong bg-surface px-3 text-[12px] font-semibold text-ink-2 transition-colors hover:border-accent hover:text-accent"
-      aria-label={lang === "en" ? "切换到中文" : "Switch to English"}
-    >
-      {lang === "en" ? "中文" : "EN"}
-    </a>
-  );
+  return <SiteLanguageToggle />;
 }

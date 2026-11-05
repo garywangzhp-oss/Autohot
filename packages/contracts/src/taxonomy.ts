@@ -11,6 +11,9 @@ export const CATEGORY_KEYS = CATEGORIES.map((c) => c.key) as unknown as readonly
 
 /** Website tab labels. */
 export const CATEGORY_LABELS = Object.fromEntries(CATEGORIES.map((c) => [c.key, c.label])) as Record<CategoryKey, string>;
+export const CATEGORY_LABELS_EN = Object.fromEntries(CATEGORIES.map((c) => [c.key, c.labelEn])) as Record<CategoryKey, string>;
+/** Daily report section names. Several categories share one section. */
+export const SECTION_LABELS = Object.fromEntries(CATEGORIES.map((c) => [c.section, c.sectionEn])) as Record<string, string>;
 
 const MERGE: Partial<Record<string, string>> = PUBLIC_CATEGORIES.merge;
 const FEED_LABELS: Partial<Record<string, string>> = PUBLIC_CATEGORIES.feedLabels;

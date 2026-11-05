@@ -1,5 +1,5 @@
 // Public pool (/all) with numeric pages, and search in its two orderings.
-import type { PoolResponse, TimelineFilters } from "@aihot/contracts/site";
+import type { PoolResponse, SiteLanguage, TimelineFilters } from "@aihot/contracts/site";
 import { beijingDate, beijingMidnight } from "@aihot/contracts/time";
 import { one, sql, withCustomPlans, type Db } from "../db.ts";
 import { cachedByKey, SHARED_ONLY } from "../lib/cache.ts";
@@ -116,12 +116,13 @@ export interface PoolQuery extends TimelineFilters {
   tab?: "time" | "relevance";
   page?: number;
   now?: Date;
+  lang?: SiteLanguage;
 }
 
 // Identical searches share only unfinished work, before taking search capacity. A completed or
 // failed read is never reused; explicit clocks remain independent for replays and historical reads.
 const sharedSearch = cachedByKey(
-  (q: PoolQuery) => JSON.stringify([q.channel, q.category, q.tag, q.q, q.tab, q.page]),
+  (q: PoolQuery) => JSON.stringify([q.channel, q.category, q.tag, q.q, q.tab, q.page, q.lang ?? "zh"]),
   queryPool, { ...SHARED_ONLY, maxKeys: 200 },
 );
 
@@ -221,10 +222,10 @@ async function queryPool(query: PoolQuery): Promise<PoolResponse> {
       WHERE ${listedCondition(now)} AND p.timeline_at >= ${beijingMidnight(today)} ${filters}) AS today_count,
       (SELECT max(p.updated_at) FROM publications p WHERE p.eligible) AS updated_at`);
 
-  const holders = await seatHolders(rows, now);
+  const holders = await seatHolders(rows, now, sql, query.lang ?? "zh");
   return {
     filters: { channel: query.channel, category: query.category, tag: query.tag, q, tab },
-    items: rows.map((r) => (holders.has(r.id) ? { ...toFeedItemSummary(r), reason: null, sameEvent: holders.get(r.id)! } : toFeedItemSummary(r))),
+    items: rows.map((r) => (holders.has(r.id) ? { ...toFeedItemSummary(r, query.lang ?? "zh"), reason: null, sameEvent: holders.get(r.id)! } : toFeedItemSummary(r, query.lang ?? "zh"))),
     page,
     pageCount: Math.min(POOL_MAX_PAGES, Math.max(1, Math.ceil(total / POOL_PAGE_SIZE))),
     total,

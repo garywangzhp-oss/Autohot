@@ -1,7 +1,7 @@
 // The latest hot ranking through the public read layer. A stored entry is shown only while its
 // representative is still listed evidence of the story (regrouping or a withdrawal can undo it before
 // the next ranking); the web shows heat values, machine exits only ranks (stories.ts).
-import { HOT_FACE_LIMIT, type HotParticipant, type HotStripEntry } from "@aihot/contracts/site";
+import { HOT_FACE_LIMIT, type HotParticipant, type HotStripEntry, type SiteLanguage } from "@aihot/contracts/site";
 import { sql } from "../db.ts";
 import { storedHotRanking, tierRank, type HotEntry, type HotRanking } from "../events/hot.ts";
 import { cached, cachedByKey, SHARED_ONLY } from "../lib/cache.ts";
@@ -9,6 +9,7 @@ import { proxiedImage, proxiedImageSet } from "../media/imgproxy.ts";
 import { publicSourceName } from "./rules.ts";
 import { evidenceCondition, listedCondition } from "./scope.ts";
 import { storyTexts } from "./story-text.ts";
+import { itemCopyByIds } from "./items.ts";
 
 // Concurrent reads are shared, nothing more: public words follow withdrawals and regrouping at once.
 const ranking = cached(queryLatestHotRanking, SHARED_ONLY);
@@ -18,9 +19,10 @@ export function latestHotRanking(): Promise<HotRanking | null> {
 }
 
 /** Search links follow the same current public evidence as every hot-ranking surface. */
-export async function hotSearchLinks() {
+export async function hotSearchLinks(lang: SiteLanguage = "zh") {
   const ranking = await latestHotRanking();
-  return (ranking?.entries ?? []).slice(0, 5).map(e => ({ rank: e.rank, title: e.title, to: `/story/${e.storyPublicId}` }));
+  const copy = await itemCopyByIds((ranking?.entries ?? []).map((entry) => entry.representativeItemId).filter((id): id is string => !!id), lang);
+  return (ranking?.entries ?? []).slice(0, 5).map(e => ({ rank: e.rank, title: copy.get(e.representativeItemId ?? "")?.title ?? e.title, to: `/story/${e.storyPublicId}` }));
 }
 
 async function queryLatestHotRanking(): Promise<HotRanking | null> {
@@ -110,13 +112,16 @@ export async function rankingExtras(ranking: HotRanking) {
 }
 
 /** Home "current hot" strip: 3–5 entries from the same ranking, hidden when there are fewer than 3. */
-export async function loadHotStrip(): Promise<HotStripEntry[] | null> {
+export async function loadHotStrip(lang: SiteLanguage = "zh"): Promise<HotStripEntry[] | null> {
   const ranking = await latestHotRanking();
   if (!ranking || ranking.entries.length < 3) return null;
-  const extras = await rankingExtras(ranking);
+  const [extras, copy] = await Promise.all([
+    rankingExtras(ranking),
+    itemCopyByIds(ranking.entries.map((entry) => entry.representativeItemId).filter((id): id is string => !!id), lang),
+  ]);
   return ranking.entries.slice(0, 5).map((e) => ({
     rank: e.rank,
-    title: e.title,
+    title: copy.get(e.representativeItemId ?? "")?.title ?? e.title,
     heat: e.heat,
     trend: e.trend,
     storyPublicId: e.storyPublicId,

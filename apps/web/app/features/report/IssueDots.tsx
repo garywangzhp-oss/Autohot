@@ -5,6 +5,7 @@
 // to the same issues.
 import { useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router";
+import { useSiteLanguage, withLanguageHref } from "../i18n/SiteLanguage";
 import type { ReportNavigationEntry, ReportKind } from "@aihot/contracts/site";
 import { KIND_PATH, periodGrid } from "./format";
 
@@ -17,6 +18,7 @@ export function IssueDots({ kind, reportKey, issueNumber, index, className = "" 
   const grid = useMemo(() => periodGrid(kind, reportKey, index, issueNumber), [kind, reportKey, index, issueNumber]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const navigate = useNavigate();
+  const lang = useSiteLanguage();
   const rows = Math.ceil(grid.cells.length / grid.columns);
 
   useEffect(() => {
@@ -114,7 +116,7 @@ export function IssueDots({ kind, reportKey, issueNumber, index, className = "" 
     };
     const onClick = (e: MouseEvent) => {
       const c = cells[cellAt(e)];
-      if (c?.key && c.state === "issue") navigate(`${KIND_PATH[kind]}/${c.key}`);
+      if (c?.key && c.state === "issue") navigate(withLanguageHref(`${KIND_PATH[kind]}/${c.key}`, lang));
     };
 
     const resize = new ResizeObserver(() => {

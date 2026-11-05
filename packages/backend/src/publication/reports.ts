@@ -1,6 +1,6 @@
 // Reports through the public read layer: website DTOs and the v1 shapes. Only real reports are
 // listed; a missing date is a 404, never another day. Withdrawn citations are marked, not shown.
-import type { ReportCitation, ReportDetail, ReportIndexEntry, ReportNavigationEntry, ReportKind } from "@aihot/contracts/site";
+import type { ReportCitation, ReportDetail, ReportIndexEntry, ReportNavigationEntry, ReportKind, SiteLanguage } from "@aihot/contracts/site";
 import { REPORTS, SITE, withSubject } from "@aihot/site";
 import { sql } from "../db.ts";
 import { cached, type Cached } from "../lib/cache.ts";
@@ -69,8 +69,15 @@ export async function unavailableIds(ids: string[]): Promise<Set<string>> {
  * numbers count the whole series of the kind before the limit applies, so the 401st issue is numbered
  * 401 although the index keeps 400; a back-filled or deleted issue renumbers the ones after it.
  */
-export async function reportIndexRows(kind: ReportKind, limit: number) {
+export async function reportIndexRows(kind: ReportKind, limit: number, lang: SiteLanguage = "zh") {
   return sql<{ key: string; issue_number: number; content: Record<string, any>; generated_at: Date }[]>`
+    WITH localized AS MATERIALIZED (
+      SELECT r.key, r.kind, r.generated_at,
+        CASE WHEN ${lang} = 'en' THEN coalesce(l.content, r.content) ELSE r.content END AS content
+      FROM reports r
+      LEFT JOIN report_localizations l ON l.report_id = r.id AND l.lang = 'en' AND l.revision >= r.revision
+      WHERE r.kind = ${kind}
+    )
     SELECT key, generated_at, (row_number() OVER (ORDER BY key))::int AS issue_number, jsonb_build_object(
       'lead', content->'lead', 'headline', content->'headline', 'title', content->'title',
       'leadItemId', content->'leadItemId', 'highlights', content->'highlights',
@@ -80,7 +87,7 @@ export async function reportIndexRows(kind: ReportKind, limit: number) {
          FROM jsonb_array_elements(jsonb_path_query_array(content,
            CASE WHEN kind = 'daily' THEN '$.sections[*].items[*]'::jsonpath ELSE '$.themes[*].storyRefs[*]'::jsonpath END
          )) WITH ORDINALITY AS cited(item, ord))))) AS content
-    FROM reports WHERE kind = ${kind} ORDER BY key DESC LIMIT ${limit}`;
+    FROM localized ORDER BY key DESC LIMIT ${limit}`;
 }
 
 /** The entries an issue cites in reading order: a daily's sections, a weekly's or monthly's themes. */
@@ -323,11 +330,12 @@ async function neighbors(kind: ReportKind, key: string): Promise<{ prev: string 
   return { prev: row?.prev ?? null, next: row?.next ?? null };
 }
 
-export async function loadReport(kind: ReportKind, key: string): Promise<ReportDetail | null> {
+export async function loadReport(kind: ReportKind, key: string, lang: SiteLanguage = "zh"): Promise<ReportDetail | null> {
   // Its number counts every issue of the kind up to it, as the index numbers them (reportIndexRows).
   const [r] = await sql<(Pick<ReportRow, "content" | "generated_at"> & { issue_number: number })[]>`
-    SELECT r.content, r.generated_at, (SELECT count(*)::int FROM reports earlier WHERE earlier.kind = r.kind AND earlier.key <= r.key) AS issue_number
-    FROM reports r WHERE r.kind = ${kind} AND r.key = ${key}`;
+    SELECT CASE WHEN ${lang} = 'en' THEN coalesce(l.content, r.content) ELSE r.content END AS content, r.generated_at, (SELECT count(*)::int FROM reports earlier WHERE earlier.kind = r.kind AND earlier.key <= r.key) AS issue_number
+    FROM reports r LEFT JOIN report_localizations l ON l.report_id = r.id AND l.lang = 'en' AND l.revision >= r.revision
+    WHERE r.kind = ${kind} AND r.key = ${key}`;
   if (!r) return null;
   const c = r.content;
   const entries: Array<Record<string, any>> = [
@@ -361,8 +369,8 @@ export async function loadReport(kind: ReportKind, key: string): Promise<ReportD
   const [{ prev, next }, picture] = await Promise.all([neighbors(kind, key), leadItem?.itemId && leadItem.available ? leadCover(leadItem.itemId) : null]);
   const cover = picture && leadItem ? { ...picture, caption: kind === "daily" || c.leadItemId ? null : leadItem.title } : null;
   const headline = kind === "daily" ? null : periodicHeadline(c);
-  const title = kind === "daily" ? `${withSubject("日报")} · ${key}`
-    : String((hasCitedLead && c.title === headline ? named?.title : c.title) ?? (kind === "weekly" ? `${SITE.name} 周报 · ${key}` : `${SITE.name} 月报 · ${key}`));
+  const title = kind === "daily" ? (lang === "en" ? `AutoHot Daily · ${key}` : `${withSubject("日报")} · ${key}`)
+    : String((hasCitedLead && c.title === headline ? named?.title : c.title) ?? (lang === "en" ? `AutoHot ${kind === "weekly" ? "Weekly" : "Monthly"} · ${key}` : (kind === "weekly" ? `${SITE.name} 周报 · ${key}` : `${SITE.name} 月报 · ${key}`)));
   return {
     kind,
     key,
@@ -396,21 +404,22 @@ export async function loadReport(kind: ReportKind, key: string): Promise<ReportD
  * index cannot reintroduce a withdrawn headline into downstream caches.
  */
 const INDEX_LIMIT = 400;
-const indexes = new Map<ReportKind, Cached<{ rows: Awaited<ReturnType<typeof reportIndexRows>>; gone: Set<string> }>>();
-export function reportIndex(kind: ReportKind) {
-  let entry = indexes.get(kind);
+const indexes = new Map<string, Cached<{ rows: Awaited<ReturnType<typeof reportIndexRows>>; gone: Set<string> }>>();
+export function reportIndex(kind: ReportKind, lang: SiteLanguage = "zh") {
+  const cacheKey = `${kind}:${lang}`;
+  let entry = indexes.get(cacheKey);
   if (!entry) {
     entry = cached(async () => {
-      const rows = await reportIndexRows(kind, INDEX_LIMIT);
+      const rows = await reportIndexRows(kind, INDEX_LIMIT, lang);
       return { rows, gone: await unavailableHeadlineIds(rows, kind === "daily" ? "daily" : "periodic") };
     }, { freshMs: 60_000, maxStaleMs: 60_000 });
-    indexes.set(kind, entry);
+    indexes.set(cacheKey, entry);
   }
   return entry.get();
 }
 
-export async function listReports(kind: ReportKind, limit = INDEX_LIMIT): Promise<ReportIndexEntry[]> {
-  const index = await reportIndex(kind);
+export async function listReports(kind: ReportKind, limit = INDEX_LIMIT, lang: SiteLanguage = "zh"): Promise<ReportIndexEntry[]> {
+  const index = await reportIndex(kind, lang);
   const rows = index.rows.slice(0, limit);
   const shape = kind === "daily" ? "daily" : "periodic";
   const gone = index.gone;
@@ -650,10 +659,10 @@ export function reportNavigation(kind: ReportKind, index: ReportIndexEntry[], ke
   }));
 }
 
-export async function loadReportNavigation(kind: ReportKind, key: string) {
-  return reportNavigation(kind, await listReports(kind), key);
+export async function loadReportNavigation(kind: ReportKind, key: string, lang: SiteLanguage = "zh") {
+  return reportNavigation(kind, await listReports(kind, INDEX_LIMIT, lang), key);
 }
 
-export async function loadReportMonth(kind: ReportKind, month: string) {
-  return (await listReports(kind)).filter((e) => e.key.startsWith(month)).map(({ key, issueNumber, title }) => ({ key, issueNumber, title }));
+export async function loadReportMonth(kind: ReportKind, month: string, lang: SiteLanguage = "zh") {
+  return (await listReports(kind, INDEX_LIMIT, lang)).filter((e) => e.key.startsWith(month)).map(({ key, issueNumber, title }) => ({ key, issueNumber, title }));
 }

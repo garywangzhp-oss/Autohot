@@ -1,6 +1,7 @@
 // Duplicate reports of one news fact. Desktop expands inline; phones use a sheet.
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Link, useLocation } from "react-router";
+import { useLocation } from "react-router";
+import { LocalizedLink as Link, withLanguageHref } from "../i18n/SiteLanguage.tsx";
 import { Collapse } from "../../components/ui/Presence";
 import { Sheet } from "../../components/ui/Sheet";
 import type { GroupInfo, GroupReport, GroupReportsResponse, TimelineFilters } from "@aihot/contracts/site";
@@ -11,8 +12,8 @@ import { listPath, filterParams } from "../../lib/seo";
 import { sessionCache } from "../../lib/session-cache";
 import { FEED_TEXT, useFeedLanguage } from "./Language";
 
-const reportsUrl = (factId: string, filters: TimelineFilters | undefined) =>
-  listPath(`/api/site/groups/${encodeURIComponent(factId)}/reports`, filters ? filterParams(filters) : {});
+const reportsUrl = (factId: string, filters: TimelineFilters | undefined, lang: "zh" | "en") =>
+  withLanguageHref(listPath(`/api/site/groups/${encodeURIComponent(factId)}/reports`, filters ? filterParams(filters) : {}), lang);
 
 const labelOf = (group: GroupInfo, english: boolean) => (group.additionalSourceCount > 0 ? (english ? `${group.additionalSourceCount} more sources` : `另有 ${group.additionalSourceCount} 家信源报道`) : (english ? `${group.reportCount} reports` : `${group.reportCount} 篇报道`));
 
@@ -100,7 +101,7 @@ export function GroupSources({ group, filters, parentId }: { group: GroupInfo; f
   const key = `${group.factId}|${parentId}`;
   const saved = openGroups.peek(entry)?.groups[key];
   const [open, setOpen] = useState(saved !== undefined);
-  const reports = useReports(reportsUrl(group.factId, filters), saved);
+  const reports = useReports(reportsUrl(group.factId, filters, lang), saved);
   // Back in this history entry, an open group comes back open and is read once more; so after the browser
   // reloaded the page on back/forward (never on a reader's reload, which asks for a fresh list).
   useEffect(() => {
@@ -184,7 +185,7 @@ function GroupSheet({ open, onClose, group, filters, parentId }: {
   parentId: string;
 }) {
   const lang = useFeedLanguage();
-  const reports = useReports(reportsUrl(group.factId, filters));
+  const reports = useReports(reportsUrl(group.factId, filters, lang));
   useEffect(() => {
     if (open && !reports.reports && !reports.loading && !reports.error) void reports.load();
   }, [open]);

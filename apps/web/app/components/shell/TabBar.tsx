@@ -1,9 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from "react";
-import { Link, useLocation, useRevalidator } from "react-router";
+import { useLocation, useRevalidator } from "react-router";
 import { tabs, type TabKey } from "./nav";
 import { noteScreen, rememberedTab, useScreen } from "./screens";
 import { markBack } from "./transitions";
 import { useChangelogDot } from "./Sidebar";
+import { LocalizedLink as Link, useSiteLanguage } from "../../features/i18n/SiteLanguage";
 
 const subscribe = () => () => {};
 const serverTab = () => null;
@@ -19,6 +20,7 @@ const COLUMNS: Record<number, string> = { 4: "grid-cols-4", 5: "grid-cols-5" };
  */
 export function TabBar({ changelogVersion }: { changelogVersion: string | null }) {
   const screen = useScreen();
+  const lang = useSiteLanguage();
   const { pathname, key } = useLocation();
   const revalidator = useRevalidator();
   const dot = useChangelogDot(changelogVersion);

@@ -1,5 +1,5 @@
 // "事件后续" on an article page: the news facts of its event that made 精选, newest first.
-import type { StoryFollowupsResponse } from "@aihot/contracts/site";
+import type { SiteLanguage, StoryFollowupsResponse } from "@aihot/contracts/site";
 import { sql } from "../db.ts";
 import { pickRepresentative, REPRESENTATIVE_COLUMNS, type RepresentativeIdentity } from "./representative.ts";
 import { publicSourceName } from "./rules.ts";
@@ -16,12 +16,13 @@ type Member = RepresentativeIdentity & {
  * Each fact of the story with a selected report still evidence of it: its representative, the facts
  * ordered by when they first appeared. Null for an unknown or merged story, or one without any.
  */
-export async function loadStoryFollowups(storyPublicId: string, now = new Date()): Promise<StoryFollowupsResponse | null> {
+export async function loadStoryFollowups(storyPublicId: string, now = new Date(), lang: SiteLanguage = "zh"): Promise<StoryFollowupsResponse | null> {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(storyPublicId)) return null;
   const members = await sql<Member[]>`
-    SELECT p.fact_id, f.public_id AS fact_public_id, p.article_id AS id, p.title, s.name AS source_name,
+    SELECT p.fact_id, f.public_id AS fact_public_id, p.article_id AS id, coalesce(el.title, p.original_title, p.title) AS title, s.name AS source_name,
       p.body_mode, p.score, p.timeline_at, p.sort_at, ${REPRESENTATIVE_COLUMNS}
     FROM stories st JOIN publications p ON p.story_id = st.id JOIN sources s ON s.id = p.source_id JOIN facts f ON f.id = p.fact_id
+    LEFT JOIN publication_localizations el ON el.article_id = p.article_id AND el.lang = ${lang === "en" ? "en" : "zh"} AND el.revision >= p.revision
     WHERE st.public_id = ${storyPublicId} AND st.merged_into IS NULL AND ${selectedCondition(now)} AND ${ownFactEvidenceCondition()}`;
   const byFact = new Map<number, Member[]>();
   for (const m of members) byFact.set(m.fact_id, [...(byFact.get(m.fact_id) ?? []), m]);

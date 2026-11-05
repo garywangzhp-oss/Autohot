@@ -1,7 +1,7 @@
 // Public read layer, item level. Every exit (site API, v1, RSS, MCP, sitemap) reads
 // items through these columns and views; which rows are public is decided by scope.ts.
 import { CATEGORY_KEYS, toPublicApiCategory, type CategoryKey, type ChannelKey, type PublicApiCategoryKey } from "@aihot/contracts/taxonomy";
-import type { FeedItemSummary, ItemSummary, MediaView, XPostView } from "@aihot/contracts/site";
+import type { FeedItemSummary, ItemSummary, MediaView, SiteLanguage, XPostView } from "@aihot/contracts/site";
 import { POLICY } from "@aihot/site";
 import { sql, type Db } from "../db.ts";
 import { proxiedImage, proxiedImageSet } from "../media/imgproxy.ts";
@@ -39,6 +39,10 @@ export interface ItemRow {
   story_public_id: string | null;
   story_title: string | null;
   zh_text: string | null;
+  en_title: string | null;
+  en_summary: string | null;
+  en_reason: string | null;
+  en_body_text: string | null;
   /** Chinese translation of the post an X post quotes. */
   quoted_zh: string | null;
 }
@@ -50,7 +54,8 @@ export const ITEM_COLUMNS = sql`
   p.body_mode, p.indexable, p.fact_id, s.name AS source_name, s.participation_mode AS source_mode,
   a.x_post, a.author, a.language,
   st.public_id::text AS story_public_id, st.title AS story_title,
-  CASE WHEN p.channel = 'x' THEN tr.body_text END AS zh_text, qt.text_zh AS quoted_zh`;
+  CASE WHEN p.channel = 'x' THEN tr.body_text END AS zh_text, qt.text_zh AS quoted_zh,
+  el.title AS en_title, el.summary AS en_summary, el.reason AS en_reason, el.body_text AS en_body_text`;
 
 /** Public API listings never render article bodies, X media or story metadata. */
 export type ApiItemRow = Pick<ItemRow, "id" | "title" | "original_title" | "summary" | "source_name" | "url" | "published_at" | "discovered_at" | "category" | "score" | "selected" | "reason">;
@@ -67,6 +72,7 @@ export const ITEM_FROM = sql`
   JOIN articles a ON a.id = p.article_id
   LEFT JOIN stories st ON st.id = p.story_id AND st.merged_into IS NULL
   LEFT JOIN translations tr ON tr.article_id = p.article_id AND tr.lang = 'zh' AND tr.revision >= a.revision
+  LEFT JOIN publication_localizations el ON el.article_id = p.article_id AND el.lang = 'en' AND el.revision >= a.revision
   LEFT JOIN quote_translations qt ON p.channel = 'x' AND qt.tweet_id = substring(a.x_post->'quoted'->>'url' from '/status/([0-9]+)')`;
 
 export function channelCondition(channel: ChannelKey | null | undefined) {
@@ -108,7 +114,7 @@ function mediaView(m: Record<string, any>, mode: "card" | "thumb" | "full" = "th
   };
 }
 
-export function xView(row: Pick<ItemRow, "x_post" | "zh_text"> & Partial<Pick<ItemRow, "quoted_zh">>, compact = false, responsive = compact): XPostView | null {
+export function xView(row: Pick<ItemRow, "x_post" | "zh_text"> & Partial<Pick<ItemRow, "quoted_zh" | "en_body_text">>, compact = false, responsive = compact, lang: SiteLanguage = "zh"): XPostView | null {
   const x = row.x_post;
   if (!x) return null;
   const quoted = x.quoted && typeof x.quoted === "object"
@@ -126,7 +132,7 @@ export function xView(row: Pick<ItemRow, "x_post" | "zh_text"> & Partial<Pick<It
     handle: String(x.handle ?? ""),
     avatarUrl: proxiedImage(x.avatarUrl, "avatar"),
     ...(avatarSrcSet ? { avatarSrcSet } : {}),
-    text: String(x.text ?? ""),
+    text: lang === "en" && row.en_body_text ? row.en_body_text : String(x.text ?? ""),
     translation: row.zh_text && row.zh_text.trim() !== String(x.text ?? "").trim() ? row.zh_text : null,
     quoted,
     // A multi-image list grid is 112 CSS px wide; one image can be 240 px. Keep 3x pixels for both.
@@ -144,13 +150,13 @@ export function showsPost(row: { channel: string; body_mode: string }): boolean 
 }
 
 /** The shared public article; its X post is added as each answer shows it. */
-export function toItemSummary(row: ItemRow): ItemSummary {
+export function toItemSummary(row: ItemRow, lang: SiteLanguage = "zh"): ItemSummary {
   return {
     id: row.id,
-    title: row.title,
+    title: lang === "en" ? row.en_title ?? row.original_title ?? row.title : row.title,
     originalTitle: row.original_title,
-    summary: row.summary,
-    reason: row.selected ? row.reason : null,
+    summary: lang === "en" ? row.en_summary ?? row.original_summary ?? row.summary : row.summary,
+    reason: row.selected ? (lang === "en" ? row.en_reason ?? row.reason : row.reason) : null,
     source: { name: publicSourceName(row.source_name) },
     links: { original: row.url },
     publishedAt: row.published_at?.toISOString() ?? null,
@@ -161,14 +167,14 @@ export function toItemSummary(row: ItemRow): ItemSummary {
     score: row.score === null ? null : Math.round(Number(row.score)),
     selected: row.selected,
     channel: row.channel,
-    story: row.story_public_id ? { publicId: row.story_public_id, title: row.story_title ?? "" } : null,
+    story: row.story_public_id ? { publicId: row.story_public_id, title: lang === "en" ? row.en_title ?? row.original_title ?? row.story_title ?? "" : row.story_title ?? "" } : null,
   };
 }
 
 /** Project the shared public article into the exact fields a site card renders. */
-export function toFeedItemSummary(row: ItemRow): FeedItemSummary {
-  const item = toItemSummary(row);
-  const x = showsPost(row) ? xView(row, true) : null;
+export function toFeedItemSummary(row: ItemRow, lang: SiteLanguage = "zh"): FeedItemSummary {
+  const item = toItemSummary(row, lang);
+  const x = showsPost(row) ? xView(row, true, true, lang) : null;
   return {
     id: item.id, title: item.title, originalTitle: item.originalTitle, originalSummary: row.original_summary,
     summary: item.summary, reason: item.reason,
@@ -195,15 +201,34 @@ export function exportTranslation(a: { language?: string | null; body_text?: str
   return !isChineseBody(a) && a.tr_html && a.tr_complete ? a.tr_html : null;
 }
 
+/** English or Chinese copy for arbitrary public item ids, using original text only as a fallback. */
+export async function itemCopyByIds(ids: string[], lang: SiteLanguage = "zh"): Promise<Map<string, { title: string; summary: string | null }>> {
+  const unique = [...new Set(ids.filter(Boolean))];
+  if (!unique.length) return new Map();
+  if (lang === "zh") {
+    const rows = await sql<{ id: string; title: string; summary: string | null }[]>`
+      SELECT p.article_id AS id, p.title, p.summary FROM publications p WHERE p.article_id = ANY(${unique}::text[])`;
+    return new Map(rows.map((row) => [row.id, { title: row.title, summary: row.summary }]));
+  }
+  const rows = await sql<{ id: string; title: string; summary: string | null }[]>`
+    SELECT p.article_id AS id, coalesce(el.title, p.original_title, p.title) AS title,
+      coalesce(el.summary, a.excerpt, p.summary) AS summary
+    FROM publications p JOIN articles a ON a.id = p.article_id
+    LEFT JOIN publication_localizations el ON el.article_id = p.article_id AND el.lang = 'en' AND el.revision >= a.revision
+    WHERE p.article_id = ANY(${unique}::text[])`;
+  return new Map(rows.map((row) => [row.id, { title: row.title, summary: row.summary }]));
+}
 /**
  * For listed rows that are selected but yield their fact's seat: the report holding it, by row id.
  * (The home timeline folds these into reading groups; flat lists say which report stands for them.)
  */
-export async function seatHolders(rows: ItemRow[], now: Date, db: Db = sql): Promise<Map<string, { id: string; title: string }>> {
+export async function seatHolders(rows: ItemRow[], now: Date, db: Db = sql, lang: SiteLanguage = "zh"): Promise<Map<string, { id: string; title: string }>> {
   const yielding = rows.filter((r) => r.selected && !r.seat && r.fact_id !== null);
   if (!yielding.length) return new Map();
   const holders = await db<{ fact_id: number; id: string; title: string }[]>`
-    SELECT p.fact_id, p.article_id AS id, p.title FROM publications p
+    SELECT p.fact_id, p.article_id AS id, coalesce(el.title, p.original_title, p.title) AS title
+    FROM publications p JOIN articles a ON a.id = p.article_id
+    LEFT JOIN publication_localizations el ON el.article_id = p.article_id AND el.lang = ${lang} AND el.revision >= a.revision
     WHERE p.fact_id IN ${db([...new Set(yielding.map((r) => r.fact_id!))])} AND ${seatedCondition(now)}`;
   const byFact = new Map(holders.map((h) => [Number(h.fact_id), { id: h.id, title: h.title }]));
   return new Map(yielding.flatMap((r) => (byFact.has(Number(r.fact_id)) ? [[r.id, byFact.get(Number(r.fact_id))!] as const] : [])));

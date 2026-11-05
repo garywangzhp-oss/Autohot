@@ -2,7 +2,7 @@ import { useLoaderData } from "react-router";
 import { IntentLink } from "../components/ui/IntentLink";
 import type { ReportIndexEntry, ReportIndexResponse } from "@aihot/contracts/site";
 import { SITE, withSubject } from "@aihot/site";
-import { apiGet, edgeTtl, pageExpiresAt } from "../lib/api.server";
+import { apiGet, edgeTtl, pageExpiresAt, requestLanguage, withLanguage } from "../lib/api.server";
 import { cachedLoader } from "../lib/page-reuse";
 import { archiveLd, pageMeta } from "../lib/seo";
 import { beijingDate } from "@aihot/contracts/time";
@@ -18,7 +18,7 @@ export { shouldRevalidate } from "../lib/page-reuse";
 export const clientLoader = cachedLoader<typeof loader>();
 
 export async function loader({ request }: { request: Request }) {
-  const { items: index } = await apiGet<ReportIndexResponse>("/api/site/reports/daily", { signal: request.signal });
+  const { items: index } = await apiGet<ReportIndexResponse>(withLanguage("/api/site/reports/daily", requestLanguage(request)), { signal: request.signal });
   return { index, today: beijingDate(Date.now()), expiresAt: pageExpiresAt(600) };
 }
 

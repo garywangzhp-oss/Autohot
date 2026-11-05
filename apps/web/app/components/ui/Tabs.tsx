@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, type CSSProperties, type ReactNode } from "react";
-import { Link } from "react-router";
 import { IntentLink } from "./IntentLink";
+import { LocalizedLink as Link } from "../../features/i18n/SiteLanguage";
 import { useEntrance } from "../../lib/hydration";
 
 /** Where each switch's thumb sat when it last left, relative to its track. */

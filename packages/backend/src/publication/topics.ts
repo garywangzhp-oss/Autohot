@@ -5,6 +5,7 @@
 // appear in the Chinese or the original title. Lists and counts read the selected set one report per
 // fact, as v1 and RSS do.
 import type { CategoryKey } from "@aihot/contracts/taxonomy";
+import type { SiteLanguage } from "@aihot/contracts/site";
 import type {
   Brand, TopicGroup, TopicGroupKey, TopicLink, TopicPage, TopicSummary, TopicsResponse,
 } from "@aihot/contracts/site";
@@ -65,6 +66,37 @@ export const TOPICS: Topic[] = file.topics.map((t) => ({
   aliases: t.entityId ? [t.slug, t.name, ...nameParts(t.name), ...(t.aliases ?? [])] : [],
 }));
 
+const TOPIC_GROUPS_EN: Record<string, TopicGroup> = {
+  company: { key: "company", name: "Companies & brands", blurb: "Track new models, strategy and operations by automaker." },
+  field: { key: "field", name: "Technology", blurb: "Follow batteries, chips, charging, platforms and other technology fields." },
+  genre: { key: "genre", name: "Story types", blurb: "Browse launches, sales, technology, policy, reviews and analysis." },
+};
+
+const TOPIC_NAMES_EN: Record<string, string> = {
+  tesla: "Tesla", toyota: "Toyota", volkswagen: "Volkswagen", gm: "General Motors", ford: "Ford", stellantis: "Stellantis",
+  hyundai: "Hyundai", byd: "BYD", mercedes: "Mercedes-Benz", bmw: "BMW", honda: "Honda", nissan: "Nissan", xiaomi: "Xiaomi EV",
+  nio: "NIO", xpeng: "XPeng", li: "Li Auto", catl: "CATL", volvo: "Volvo", rivian: "Rivian", waymo: "Waymo",
+  "new-energy": "New energy", battery: "Battery technology", charging: "Charging & infrastructure", cockpit: "Smart cockpits",
+  chips: "Automotive chips", platform: "Platforms & architectures", safety: "Safety & recalls", hydrogen: "Hydrogen & fuel cells",
+  commercial: "Commercial vehicles", robotaxi: "Robotaxi", globalization: "Global expansion", capacity: "Capacity & factories",
+  launch: "New models", sales: "Sales & market", electrification: "Electrification", autonomous: "Autonomous driving",
+  technology: "Technology & software", "supply-chain": "Supply chain", manufacturing: "Manufacturing", companies: "Companies & executives",
+  industry: "Industry trends", policy: "Policy & regulation", finance: "Finance & capital", energy: "Energy & charging",
+  mobility: "Mobility", motorsport: "Motorsport", review: "Reviews", opinion: "Opinion",
+};
+
+function topicName(topic: Topic, lang: SiteLanguage): string {
+  return lang === "en" ? TOPIC_NAMES_EN[topic.slug] ?? (topic.name.replace(/\s*[\u3400-\u9fff].*$/u, "").trim() || topic.name) : topic.name;
+}
+
+function topicDefinition(topic: Topic, lang: SiteLanguage): string {
+  return lang === "en" ? `Latest selected automotive stories about ${topicName(topic, "en")}.` : topic.definition;
+}
+
+function topicGroups(lang: SiteLanguage): TopicGroup[] {
+  return lang === "en" ? TOPIC_GROUPS.map((group) => TOPIC_GROUPS_EN[group.key] ?? group) : TOPIC_GROUPS;
+}
+
 const BY_SLUG = new Map(TOPICS.map((t, position) => [t.slug, { topic: t, position }]));
 
 export function findTopic(slug: string): Topic | null {
@@ -73,13 +105,13 @@ export function findTopic(slug: string): Topic | null {
 
 const position = (slug: string) => BY_SLUG.get(slug)?.position ?? Number.MAX_SAFE_INTEGER;
 
-export function topicLinks(slugs: string[]): TopicLink[] {
-  return slugs.map((s) => findTopic(s)).filter((t): t is Topic => !!t).map((t) => ({ slug: t.slug, name: t.name }));
+export function topicLinks(slugs: string[], lang: SiteLanguage = "zh"): TopicLink[] {
+  return slugs.map((s) => findTopic(s)).filter((t): t is Topic => !!t).map((t) => ({ slug: t.slug, name: topicName(t, lang) }));
 }
 
 /** Stable browse links in the same order as the topic directory, without its counts or modules. */
-export function topicBrowseLinks() {
-  return TOPICS.map(({ slug, name, group }) => ({ slug, name, group }));
+export function topicBrowseLinks(lang: SiteLanguage = "zh") {
+  return TOPICS.map((topic) => ({ slug: topic.slug, name: topicName(topic, lang), group: topic.group }));
 }
 
 /** One membership rule for topic discovery and a single topic's page and count. */
@@ -247,14 +279,14 @@ async function currentSeats(ids: string[], now: Date, topics: Topic[] = TOPICS):
   return new Map((await readSeats(now, ids, topics)).map((s) => [s.id, s]));
 }
 
-function summarize(t: Topic, seats: TopicMember[], now: Date, brands: Map<string, Brand>, live: Map<string, TopicMember>): TopicSummary {
+function summarize(t: Topic, seats: TopicMember[], now: Date, brands: Map<string, Brand>, live: Map<string, TopicMember>, lang: SiteLanguage = "zh"): TopicSummary {
   const recent = recentCount(seats, now);
   const latest = seats.slice(0, LATEST_CANDIDATES).map((s) => live.get(s.id)).find((s) => s?.topics.includes(t.slug));
   return {
     slug: t.slug,
-    name: t.name,
+    name: topicName(t, lang),
     group: t.group,
-    definition: t.definition,
+    definition: topicDefinition(t, lang),
     brand: brands.get(t.slug) ?? null,
     total: seats.length,
     recent,
@@ -263,10 +295,10 @@ function summarize(t: Topic, seats: TopicMember[], now: Date, brands: Map<string
   };
 }
 
-export async function listTopicSummaries(): Promise<TopicsResponse> {
+export async function listTopicSummaries(lang: SiteLanguage = "zh"): Promise<TopicsResponse> {
   const [index, brands] = await Promise.all([topicIndex(), companyBrands()]);
   const live = await currentSeats(TOPICS.flatMap((t) => index.bySlug.get(t.slug)!.slice(0, LATEST_CANDIDATES).map((s) => s.id)), new Date());
-  return { groups: TOPIC_GROUPS, topics: TOPICS.map((t) => summarize(t, index.bySlug.get(t.slug)!, index.at, brands, live)) };
+  return { groups: topicGroups(lang), topics: TOPICS.map((t) => summarize(t, index.bySlug.get(t.slug)!, index.at, brands, live, lang)) };
 }
 
 export interface TopicCount {
@@ -302,7 +334,7 @@ function poolTotal(t: Topic, now?: Date): Promise<number> {
   return count.get();
 }
 
-export async function loadTopicPage(slug: string, page: number, now?: Date): Promise<TopicPage | null> {
+export async function loadTopicPage(slug: string, page: number, now?: Date, lang: SiteLanguage = "zh"): Promise<TopicPage | null> {
   const topic = findTopic(slug);
   if (!topic || !Number.isInteger(page) || page < 1) return null;
   const index = await topicIndex(now);
@@ -328,11 +360,11 @@ export async function loadTopicPage(slug: string, page: number, now?: Date): Pro
     companyBrands(),
     currentSeats(recheck, at, [topic]),
   ]);
-  const groupName = TOPIC_GROUPS.find((g) => g.key === topic.group)?.name ?? "";
+  const groupName = topicGroups(lang).find((g) => g.key === topic.group)?.name ?? "";
   return {
-    topic: { ...summarize(topic, seats, index.at, brands, live), groupName, poolTotal: pool },
+    topic: { ...summarize(topic, seats, index.at, brands, live, lang), groupName, poolTotal: pool },
     modules: Object.fromEntries(parts.map((part) => [part.name, part.part(live)])),
-    items: rows.map(toFeedItemSummary),
+    items: rows.map((row) => toFeedItemSummary(row, lang)),
     page,
     pageCount,
     pageSize: TOPIC_PAGE_SIZE,
@@ -342,7 +374,7 @@ export async function loadTopicPage(slug: string, page: number, now?: Date): Pro
 const STORY_TOPICS = 6;
 
 /** The topics of a story's reports, most reports first. */
-export async function topicsOfStory(storyId: number, now = new Date()): Promise<TopicLink[]> {
+export async function topicsOfStory(storyId: number, now = new Date(), lang: SiteLanguage = "zh"): Promise<TopicLink[]> {
   const rows = await sql<{ topics: string[] }[]>`
     SELECT DISTINCT ON (p.article_id) ${topicMembership()} AS topics
     FROM facts f JOIN fact_articles fa ON fa.fact_id = f.id JOIN publications p ON p.article_id = fa.article_id

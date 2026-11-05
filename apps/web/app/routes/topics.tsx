@@ -2,7 +2,7 @@ import { useLoaderData } from "react-router";
 import { SITE, subjectAfter, withSubject } from "@aihot/site";
 import type { Route } from "./+types/topics";
 import type { TopicSummary, TopicsResponse } from "@aihot/contracts/site";
-import { apiGet, edgeTtl, pageExpiresAt } from "../lib/api.server";
+import { apiGet, edgeTtl, pageExpiresAt, requestLanguage, withLanguage } from "../lib/api.server";
 import { cachedLoader } from "../lib/page-reuse";
 import { breadcrumbLd, pageMeta, siteUrl } from "../lib/seo";
 import { relativeTime } from "../lib/format";
@@ -11,26 +11,29 @@ import { IntentLink } from "../components/ui/IntentLink";
 import { BrandMark } from "../components/BrandMark";
 import { PhoneBar } from "../components/shell/PhoneBar";
 import type { Screen } from "../components/shell/screens";
+import { useSiteLanguage } from "../features/i18n/SiteLanguage";
 
 export const handle: Screen = { home: "me", name: "主题" };
 export { shouldRevalidate } from "../lib/page-reuse";
 export const clientLoader = cachedLoader<typeof loader>();
 
 export async function loader({ request }: { request: Request }) {
-  return { ...await apiGet<TopicsResponse>("/api/site/topics", { signal: request.signal }), expiresAt: pageExpiresAt(300) };
+  return { ...await apiGet<TopicsResponse>(withLanguage("/api/site/topics", requestLanguage(request)), { signal: request.signal }), expiresAt: pageExpiresAt(300) };
 }
 
-export function meta({ loaderData }: Route.MetaArgs) {
-  if (!loaderData) return pageMeta({ title: SITE.topicsTitle, path: "/topics", image: "/og/pages/topics.png" });
+export function meta({ loaderData, location }: Route.MetaArgs) {
+  const en = new URLSearchParams(location.search).get("lang") === "en";
+  if (!loaderData) return pageMeta({ title: en ? "Automotive topics" : SITE.topicsTitle, path: en ? "/topics?lang=en" : "/topics", image: "/og/pages/topics.png" });
   const { groups, topics } = loaderData;
   const by = groups.map((g) => g.name).join("、");
   const indexed = topics.filter((t) => t.indexable);
   const named = indexed.slice(0, 6).map((t) => t.name.split(" / ")[0]).join("、");
   const base = siteUrl();
   return pageMeta({
-    title: SITE.topicsTitle,
-    description: `按${by}${subjectAfter("追踪", "最新动态")}：${named ? `${named}等 ` : ""}${topics.length} 个主题，浏览最新精选与重要进展，持续更新。`,
-    path: "/topics",
+    title: en ? "Automotive topics · AutoHot" : SITE.topicsTitle,
+    rawTitle: en,
+    description: en ? `Browse ${topics.length} automotive topics across ${by}, with the latest selected stories and key developments.` : `按${by}${subjectAfter("追踪", "最新动态")}：${named ? `${named}等 ` : ""}${topics.length} 个主题，浏览最新精选与重要进展，持续更新。`,
+    path: en ? "/topics?lang=en" : "/topics",
     image: "/og/pages/topics.png",
     jsonLd: [
       {
@@ -58,6 +61,7 @@ export function headers() {
 
 /** Phones: a row per topic in a grouped list; wider screens: a card per topic. */
 function TopicCard({ t }: { t: TopicSummary }) {
+  const en = useSiteLanguage() === "en";
   return (
     <IntentLink
       viewTransition
@@ -86,10 +90,10 @@ function TopicCard({ t }: { t: TopicSummary }) {
           <span>
             {t.recent > 0 ? (
               <>
-                近 30 天 <span className="num font-semibold text-ink-3">{t.recent}</span> 条
+                {en ? "Past 30 days " : "近 30 天 "}<span className="num font-semibold text-ink-3">{t.recent}</span>{en ? " stories" : " 条"}
               </>
             ) : (
-              "近 30 天暂无新精选"
+              en ? "No new selections in the past 30 days" : "近 30 天暂无新精选"
             )}
           </span>
         </span>
@@ -101,14 +105,14 @@ function TopicCard({ t }: { t: TopicSummary }) {
 
 export default function TopicsPage() {
   const { groups, topics } = useLoaderData<typeof loader>();
+  const en = useSiteLanguage() === "en";
   return (
     <div className="pb-10">
-      <PhoneBar back={{ to: "/more", label: "我的" }} title="主题" />
+      <PhoneBar back={{ to: "/more", label: en ? "Me" : "我的" }} title={en ? "Topics" : "主题"} />
       <header className="pb-2 pt-3 lg:pt-1">
-        <h1 data-page-title="" className="text-[24px] font-semibold leading-[1.3] text-ink">{subjectAfter("按主题看")}</h1>
+        <h1 data-page-title="" className="text-[24px] font-semibold leading-[1.3] text-ink">{en ? "Browse by topic" : subjectAfter("按主题看")}</h1>
         <p className="mt-1.5 text-[13px] leading-relaxed text-ink-3">
-          {`按${groups.map((g) => g.name).join("、")}浏览 `}
-          <span className="num">{topics.length}</span> 个主题，追踪最新精选与重要进展。
+          {en ? `Browse ${topics.length} topics across ${groups.map((g) => g.name).join(", ")}.` : <>{`按${groups.map((g) => g.name).join("、")}浏览 `}<span className="num">{topics.length}</span> 个主题，追踪最新精选与重要进展。</>}
         </p>
       </header>
       {groups.map((g) => (

@@ -1,9 +1,10 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { Await, isRouteErrorResponse, Link, useAsyncError, useLoaderData, useNavigate, useRevalidator, type ClientLoaderFunctionArgs } from "react-router";
+import { Await, isRouteErrorResponse, useAsyncError, useLoaderData, useNavigate, useRevalidator, type ClientLoaderFunctionArgs } from "react-router";
+import { LocalizedLink as Link } from "../features/i18n/SiteLanguage.tsx";
 import type { Route } from "./+types/item";
 import type { FeedItemSummary, SiteItemDetail } from "@aihot/contracts/site";
 import { ITEM_COPY, SITE } from "@aihot/site";
-import { edgeTtl, loadOr404, pageExpiresAt } from "../lib/api.server";
+import { edgeTtl, loadOr404, pageExpiresAt, requestLanguage, withLanguage } from "../lib/api.server";
 import { cachedLoader } from "../lib/page-reuse";
 import { articleLd, breadcrumbLd, pageMeta, siteUrl, titled } from "../lib/seo";
 import { fullDateTime, relativeTime } from "../lib/format";
@@ -25,6 +26,7 @@ import { takePreview } from "../features/item/preview";
 import { IconArrowLeft, IconCopy, IconDownload, IconExternal, IconImage, IconMenu, IconMore, IconShare } from "../components/icons";
 import { BarButton, PhoneBar } from "../components/shell/PhoneBar";
 import { isPhone, type Screen } from "../components/shell/screens";
+import { useSiteLanguage, withLanguageHref } from "../features/i18n/SiteLanguage";
 
 export const handle: Screen = { home: "featured", toolbar: true };
 export { shouldRevalidate } from "../lib/page-reuse";
@@ -32,7 +34,7 @@ export { shouldRevalidate } from "../lib/page-reuse";
 const PosterSheet = lazy(() => import("../features/item/PosterSheet"));
 
 export async function loader({ params, request }: Route.LoaderArgs) {
-  const item = await loadOr404<SiteItemDetail>(`/api/site/items/${encodeURIComponent(params.id)}`, { signal: request.signal });
+  const item = await loadOr404<SiteItemDetail>(withLanguage(`/api/site/items/${encodeURIComponent(params.id)}`, requestLanguage(request)), { signal: request.signal });
   return { item, expiresAt: pageExpiresAt(600) };
 }
 
@@ -51,22 +53,24 @@ export async function clientLoader(args: ClientLoaderFunctionArgs) {
 }
 clientLoader.hydrate = true as const;
 
-export function meta({ loaderData }: Route.MetaArgs) {
-  if (!loaderData) return [{ title: titled("内容不存在") }, { name: "robots", content: "noindex" }];
+export function meta({ loaderData, location }: Route.MetaArgs) {
+  const en = new URLSearchParams(location.search).get("lang") === "en";
+  if (!loaderData) return [{ title: titled(en ? "Story not found" : "内容不存在") }, { name: "robots", content: "noindex" }];
   const { item } = loaderData;
   if (!item) return [{ title: titled(loaderData.preview.title) }];
   return pageMeta({
-    title: item.title,
+    title: en ? `${item.title} · AutoHot` : item.title,
+    rawTitle: en,
     description: item.summary ?? undefined,
-    path: `/items/${item.id}`,
+    path: en ? `/items/${item.id}?lang=en` : `/items/${item.id}`,
     image: `/og/items/${item.id}.png`,
     type: "article",
     noindex: !item.indexable,
     jsonLd: [
-      articleLd({ path: `/items/${item.id}`, headline: item.title, description: item.summary, publishedAt: item.publishedAt, basedOn: item.links.original }),
+      articleLd({ path: en ? `/items/${item.id}?lang=en` : `/items/${item.id}`, headline: item.title, description: item.summary, publishedAt: item.publishedAt, basedOn: item.links.original }),
       breadcrumbLd([
-        { name: SITE.name, path: "/" },
-        { name: item.selected ? "精选" : "全部动态", path: item.selected ? "/" : "/all" },
+        { name: en ? "AutoHot" : SITE.name, path: "/" },
+        { name: item.selected ? (en ? "Featured" : "精选") : (en ? "All stories" : "全部动态"), path: item.selected ? (en ? "/?lang=en" : "/") : (en ? "/all?lang=en" : "/all") },
         { name: item.title, path: `/items/${item.id}` },
       ]),
     ],
@@ -247,6 +251,8 @@ function ItemGone() {
 function ItemView({ item }: { item: SiteItemDetail }) {
   const navigate = useNavigate();
   const hasTranslation = item.hasTranslation;
+  const siteLang = useSiteLanguage();
+  const en = siteLang === "en";
   const lang = item.bodyLanguage;
   const [posterRequested, setPosterRequested] = useState(false);
   const [posterOpen, setPosterOpen] = useState(false);
@@ -282,37 +288,37 @@ function ItemView({ item }: { item: SiteItemDetail }) {
     }
   };
 
-  const bodyHtml = lang === "zh" ? (item.body?.zh ?? item.body?.original) : (item.body?.original ?? item.body?.zh);
-  const bodyLabel = !item.body ? null : lang === "zh" && item.body.zhKind === "translation" ? "正文 · AI 翻译" : lang === "original" && hasTranslation ? "正文 · 原文" : "正文";
+  const bodyHtml = siteLang === "en" ? (item.body?.en ?? item.body?.original ?? item.body?.zh) : lang === "zh" ? (item.body?.zh ?? item.body?.original) : (item.body?.original ?? item.body?.zh);
+  const bodyLabel = !item.body ? null : siteLang === "en" ? "Article text · English" : lang === "zh" && item.body.zhKind === "translation" ? "正文 · AI 翻译" : lang === "original" && hasTranslation ? "正文 · 原文" : "正文";
   const isX = item.channel === "x" && !!item.x;
   // Without a reliable date from the original, the time shown is when it was collected, labelled as such.
   const shownAt = item.publishedAt ?? item.discoveredAt;
-  const timeLabel = item.publishedAt ? "发布时间" : "收录时间";
+  const timeLabel = siteLang === "en" ? (item.publishedAt ? "Published" : "Collected") : item.publishedAt ? "发布时间" : "收录时间";
   const summaryOnly = item.readingMode === "summary-only";
   const showOutline = item.outline.length >= 3;
-  const originalLabel = isX ? "在 X 查看原推" : "打开原文";
+  const originalLabel = siteLang === "en" ? (isX ? "View post on X" : "Open original") : isX ? "在 X 查看原推" : "打开原文";
 
   const related = item.relatedStories.filter((s) => s.publicId !== item.story?.publicId);
 
   const back = () => {
     if (window.history.state?.idx > 0) navigate(-1);
-    else navigate(item.selected ? "/" : "/all");
+    else navigate(withLanguageHref(item.selected ? "/" : "/all", siteLang));
   };
   const backButton = (
     <button type="button" onClick={back} className="-ml-1.5 inline-flex h-8 items-center gap-1.5 rounded-full px-1.5 text-[13px] text-ink-3 transition-colors hover:text-ink">
-      <IconArrowLeft size={16} /> 返回
+      <IconArrowLeft size={16} /> {en ? "Back" : "返回"}
     </button>
   );
   const moreMenu = (
-    <Menu label="更多操作" trigger={<IconMenu size={17} />}>
+    <Menu label={en ? "More actions" : "更多操作"} trigger={<IconMenu size={17} />}>
       {(close) => (
         <>
-          <MenuItem icon={<IconShare size={15} />} onSelect={() => { close(); void share(); }}>分享链接</MenuItem>
-          <MenuItem icon={<IconImage size={15} />} onSelect={() => { close(); openPoster(); }}>生成分享海报</MenuItem>
-          <MenuItem icon={<IconCopy size={15} />} onSelect={() => { close(); void copyLink(); }}>复制链接</MenuItem>
+          <MenuItem icon={<IconShare size={15} />} onSelect={() => { close(); void share(); }}>{en ? "Share link" : "分享链接"}</MenuItem>
+          <MenuItem icon={<IconImage size={15} />} onSelect={() => { close(); openPoster(); }}>{en ? "Create share image" : "生成分享海报"}</MenuItem>
+          <MenuItem icon={<IconCopy size={15} />} onSelect={() => { close(); void copyLink(); }}>{en ? "Copy link" : "复制链接"}</MenuItem>
           {item.markdownAvailable &&
             (inWeChat() ? (
-              <MenuItem icon={<IconDownload size={15} />} onSelect={() => { close(); void copyMarkdown(); }}>复制 Markdown</MenuItem>
+              <MenuItem icon={<IconDownload size={15} />} onSelect={() => { close(); void copyMarkdown(); }}>{en ? "Copy Markdown" : "复制 Markdown"}</MenuItem>
             ) : (
               <MenuItem icon={<IconDownload size={15} />} href={`/items/${item.id}/markdown`} download onSelect={close}>
                 导出 Markdown
@@ -324,11 +330,11 @@ function ItemView({ item }: { item: SiteItemDetail }) {
   );
   // Phones: the same actions as a sheet from the bar (分享 and 原文 are on the toolbar).
   const phoneActions: ActionRow[] = [
-    { key: "poster", label: "生成分享海报", icon: <IconImage size={20} />, onSelect: openPoster },
-    { key: "copy", label: "复制链接", icon: <IconCopy size={20} />, onSelect: () => void copyLink() },
+    { key: "poster", label: en ? "Create share image" : "生成分享海报", icon: <IconImage size={20} />, onSelect: openPoster },
+    { key: "copy", label: en ? "Copy link" : "复制链接", icon: <IconCopy size={20} />, onSelect: () => void copyLink() },
     ...(item.markdownAvailable
       ? [inWeChat()
-        ? { key: "markdown", label: "复制 Markdown", icon: <IconDownload size={20} />, onSelect: () => void copyMarkdown() }
+        ? { key: "markdown", label: en ? "Copy Markdown" : "复制 Markdown", icon: <IconDownload size={20} />, onSelect: () => void copyMarkdown() }
         : { key: "markdown", label: "导出 Markdown", icon: <IconDownload size={20} />, href: `/items/${item.id}/markdown`, download: true }]
       : []),
   ];
@@ -357,7 +363,7 @@ function ItemView({ item }: { item: SiteItemDetail }) {
   // Rails: the piece's facts on the left (wide screens), the editor's notes on the right, the outline
   // under the facts (or under the notes when only the right rail shows).
   const facts = (
-    <RailSection title="来源">
+    <RailSection title={en ? "Source" : "来源"}>
       <div className="text-[14px] font-semibold leading-snug text-ink">{isX ? item.x!.authorName : item.source.name}</div>
       <div className="mt-1 text-[12.5px] leading-relaxed text-ink-3">
         {isX ? `@${item.x!.handle} · X` : item.author ?? hostOf(item.links.original)}
@@ -494,7 +500,7 @@ function ItemView({ item }: { item: SiteItemDetail }) {
 
           {item.sameEvent && (
             <p className="mt-5 text-[13px] leading-relaxed text-ink-4">
-              同一新闻，精选展示
+              {en ? "Also covered in Featured" : "同一新闻，精选展示"}
               <Link viewTransition to={`/items/${item.sameEvent.id}`} className="text-ink-3 transition-colors hover:text-accent">
                 《{item.sameEvent.title}》
               </Link>
@@ -508,13 +514,13 @@ function ItemView({ item }: { item: SiteItemDetail }) {
             </div>
           )}
 
-          {summaryOnly && <p className="mt-7 rounded-control bg-bg-sunk px-4 py-3 text-[13.5px] leading-relaxed text-ink-3">应来源方要求，这里只提供摘要与原文入口。完整内容请阅读原文。</p>}
+          {summaryOnly && <p className="mt-7 rounded-control bg-bg-sunk px-4 py-3 text-[13.5px] leading-relaxed text-ink-3">en ? "At the source request, only the summary and original link are shown. Read the full story at the source." : "应来源方要求，这里只提供摘要与原文入口。完整内容请阅读原文。"</p>}
 
           {item.body && bodyHtml && (
             <section className="mt-9 border-t border-line pt-4 xl:mt-10">
               <div className="mb-6 flex items-center justify-between gap-3">
                 <span className="text-[12px] text-ink-4">{bodyLabel}</span>
-                {hasTranslation && (
+                {siteLang === "zh" && hasTranslation && (
                   <PillTabs
                     size="xs"
                     layoutId="item-body-lang"
@@ -527,8 +533,8 @@ function ItemView({ item }: { item: SiteItemDetail }) {
                   />
                 )}
               </div>
-              {hasTranslation && lang === "zh" && !item.body.complete && (
-                <p className="mb-5 rounded-control bg-bg-sunk px-3 py-2 text-[13px] text-ink-3">译文尚不完整，完整内容请切换到原文。</p>
+              {!item.body.complete && (siteLang === "en" || (hasTranslation && lang === "zh")) && (
+                <p className="mb-5 rounded-control bg-bg-sunk px-3 py-2 text-[13px] text-ink-3">{siteLang === "en" ? "The English translation is incomplete. Open the original for the full text." : "译文尚不完整，完整内容请切换到原文。"}</p>
               )}
               <ArticleBody html={bodyHtml} />
             </section>
@@ -538,7 +544,7 @@ function ItemView({ item }: { item: SiteItemDetail }) {
           {isX && item.x!.quoted?.text && <QuotedPost quoted={item.x!.quoted} original={lang === "original"} />}
 
           <p className="mt-8 text-[13px] text-ink-4">
-            来源：
+            {siteLang === "en" ? "Source: " : "来源："}
             <a href={item.links.original} target="_blank" rel="noopener noreferrer" className="text-ink-3 hover:text-accent">
               {isX ? item.x!.authorName : item.source.name}
             </a>
@@ -564,7 +570,7 @@ function ItemView({ item }: { item: SiteItemDetail }) {
 
           {related.length > 0 && (
             <section className="mt-8">
-              <h2 className="mb-2 text-[14px] font-semibold text-ink">相关事件</h2>
+              <h2 className="mb-2 text-[14px] font-semibold text-ink">{en ? "Related events" : "相关事件"}</h2>
               <ul className="divide-y divide-line-soft">
                 {related.map((s) => (
                   <li key={s.publicId}>

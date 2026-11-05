@@ -1,5 +1,5 @@
 // Item detail and Markdown export, both behind the same visibility and licence rules.
-import type { OutlineEntry, SiteItemDetail, StoryRef } from "@aihot/contracts/site";
+import type { OutlineEntry, SiteItemDetail, SiteLanguage, StoryRef } from "@aihot/contracts/site";
 import { ITEM_COPY, SITE } from "@aihot/site";
 import { bodyToMarkdown } from "../content/markdown.ts";
 import { sql } from "../db.ts";
@@ -17,6 +17,8 @@ interface DetailRow extends ItemRow {
   body_status: string;
   tr_html: string | null;
   tr_complete: boolean | null;
+  en_body_html: string | null;
+  en_body_complete: boolean | null;
   topics: string[];
 }
 
@@ -40,7 +42,7 @@ function withOutline(html: string): { html: string; outline: OutlineEntry[] } {
 
 async function loadRow(id: string): Promise<DetailRow | null> {
   const [row] = await sql<DetailRow[]>`
-    SELECT ${ITEM_COLUMNS}, a.body_html, a.body_text, a.body_status, tr.body_html AS tr_html, tr.complete AS tr_complete,
+    SELECT ${ITEM_COLUMNS}, a.body_html, a.body_text, a.body_status, tr.body_html AS tr_html, tr.complete AS tr_complete, el.body_html AS en_body_html, el.body_complete AS en_body_complete,
       ${topicMembership()} AS topics
     ${ITEM_FROM}
     WHERE p.article_id = ${id}`;
@@ -53,19 +55,28 @@ async function loadRow(id: string): Promise<DetailRow | null> {
  * the HTML shown into what is sent, with its outline.
  */
 function readingBody(
-  language: "zh" | "original",
+  language: "zh" | "original" | "en",
   zh: { html: string; kind: "translation" | "original" } | null,
   original: string | null,
+  english: { html: string; complete: boolean } | null,
   complete: boolean,
   page: (html: string) => { html: string; outline: OutlineEntry[] },
-): Pick<SiteItemDetail, "body" | "outline" | "hasTranslation" | "bodyLanguage"> {
-  const bodyLanguage = language === "original" && original ? "original" : zh?.html ? "zh" : "original";
-  const shown = bodyLanguage === "zh" ? zh!.html : original;
+): Pick<SiteItemDetail, "body" | "outline" | "hasTranslation" | "hasEnglishTranslation" | "bodyLanguage"> {
+  const bodyLanguage: "zh" | "original" | "en" = language === "en" && english?.html ? "en"
+    : language === "original" && original ? "original" : zh?.html ? "zh" : original ? "original" : "zh";
+  const shown = bodyLanguage === "en" ? english!.html : bodyLanguage === "zh" ? zh!.html : original;
   const sent = shown ? page(shown) : { html: shown, outline: [] };
   return {
-    body: { zh: bodyLanguage === "zh" ? sent.html : null, original: bodyLanguage === "original" ? sent.html : null, zhKind: zh?.kind ?? null, complete },
+    body: {
+      zh: bodyLanguage === "zh" ? sent.html : null,
+      original: bodyLanguage === "original" ? sent.html : null,
+      en: bodyLanguage === "en" ? sent.html : null,
+      zhKind: zh?.kind ?? null,
+      complete: bodyLanguage === "en" ? english?.complete ?? false : complete,
+    },
     outline: sent.outline,
     hasTranslation: zh?.kind === "translation" && !!zh.html && !!original,
+    hasEnglishTranslation: !!english?.html,
     bodyLanguage,
   };
 }
@@ -75,11 +86,11 @@ function readingBody(
  * lists leave out (low relevance, merged duplicates, no Chinese summary yet) keep a noindex page;
  * withdrawn and hot_signal items are a 404.
  */
-export async function loadItemDetail(id: string, language: "zh" | "original" = "zh", now = new Date()): Promise<DetailResult> {
+export async function loadItemDetail(id: string, language: "zh" | "original" | "en" = "zh", now = new Date()): Promise<DetailResult> {
   const row = await loadRow(id);
   if (!row || !hasItemPage({ visibility: row.visibility, sourceMode: row.source_mode })) return { kind: "not_found" };
 
-  const summary = toItemSummary(row);
+  const summary = toItemSummary(row, language === "en" ? "en" : "zh");
   if (row.visibility === "summary-only") {
     const item: SiteItemDetail = {
       ...summary,
@@ -100,6 +111,7 @@ export async function loadItemDetail(id: string, language: "zh" | "original" = "
       markdownAvailable: false,
       group: null,
       hasTranslation: false,
+      hasEnglishTranslation: false,
       bodyLanguage: "original",
     };
     return { kind: "found", item, row };
@@ -112,12 +124,14 @@ export async function loadItemDetail(id: string, language: "zh" | "original" = "
     ORDER BY "publicId" LIMIT 6`;
 
   let x: SiteItemDetail["x"] = null;
-  let reading: Pick<SiteItemDetail, "body" | "outline" | "hasTranslation" | "bodyLanguage"> = { body: null, outline: [], hasTranslation: false, bodyLanguage: "original" };
+  let reading: Pick<SiteItemDetail, "body" | "outline" | "hasTranslation" | "hasEnglishTranslation" | "bodyLanguage"> = { body: null, outline: [], hasTranslation: false, hasEnglishTranslation: false, bodyLanguage: "original" };
   if (showsPost(row)) {
-    const post = xView(row, false, true);
+    const post = xView(row, false, true, language === "en" ? "en" : "zh");
     const text = String(row.x_post?.text ?? row.body_text ?? "");
+    const englishText = row.en_body_text?.trim() ?? "";
     // A post's text is sent as written: its headings make the outline, without anchors.
-    reading = readingBody(language, post?.translation ? { html: textToHtml(post.translation), kind: "translation" } : null, text ? textToHtml(text) : null, true,
+    reading = readingBody(language, post?.translation ? { html: textToHtml(post.translation), kind: "translation" } : null, text ? textToHtml(text) : null,
+      englishText ? { html: textToHtml(englishText), complete: true } : null, true,
       (html) => ({ html, outline: withOutline(html).outline }));
     if (post) {
       const { text: _text, translation: _translation, ...shown } = post;
@@ -126,7 +140,8 @@ export async function loadItemDetail(id: string, language: "zh" | "original" = "
   } else if (row.body_mode === "full" && row.body_html) {
     const chinese = isChineseBody(row);
     const zh = chinese ? { html: row.body_html, kind: "original" as const } : row.tr_html ? { html: row.tr_html, kind: "translation" as const } : null;
-    reading = readingBody(language, zh, chinese ? null : row.body_html, chinese ? true : row.tr_complete ?? false, (html) => withOutline(proxyBodyImages(html)));
+    const english = row.en_body_html ? { html: row.en_body_html, complete: row.en_body_complete ?? false } : null;
+    reading = readingBody(language, zh, chinese ? null : row.body_html, english, chinese ? true : row.tr_complete ?? false, (html) => withOutline(proxyBodyImages(html)));
   }
 
   let group: SiteItemDetail["group"] = null;
@@ -146,7 +161,7 @@ export async function loadItemDetail(id: string, language: "zh" | "original" = "
   }
 
   // The reason goes with the seat; a report yielding it points to the one holding it.
-  const sameEvent = (await seatHolders([row], now)).get(row.id) ?? null;
+  const sameEvent = (await seatHolders([row], now, sql, language === "en" ? "en" : "zh")).get(row.id) ?? null;
   const item: SiteItemDetail = {
     ...summary,
     x,
@@ -156,11 +171,12 @@ export async function loadItemDetail(id: string, language: "zh" | "original" = "
     body: reading.body,
     outline: reading.outline,
     relatedStories: related,
-    topics: topicLinks(row.topics),
+    topics: topicLinks(row.topics, language === "en" ? "en" : "zh"),
     indexable: row.indexable,
     markdownAvailable: markdownAvailable(row),
     group,
     hasTranslation: reading.hasTranslation,
+    hasEnglishTranslation: reading.hasEnglishTranslation,
     bodyLanguage: reading.bodyLanguage,
   };
   return { kind: "found", item, row };

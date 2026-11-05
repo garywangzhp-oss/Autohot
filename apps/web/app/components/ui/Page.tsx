@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Link } from "react-router";
+import { LocalizedLink as Link } from "../../features/i18n/SiteLanguage.tsx";
 import { IconChevronRight } from "../icons";
 
 /**

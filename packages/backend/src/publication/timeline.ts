@@ -1,6 +1,6 @@
 // Selected news timeline: one card per fact, or per standalone article. Only duplicate reports
 // fold together. Each fact stays at its first appearance; other news in its story never moves it.
-import type { GroupInfo, TimelineCard, TimelineFilters, TimelineResponse } from "@aihot/contracts/site";
+import type { GroupInfo, SiteLanguage, TimelineCard, TimelineFilters, TimelineResponse } from "@aihot/contracts/site";
 import { beijingDate, beijingMidnight } from "@aihot/contracts/time";
 import { sql } from "../db.ts";
 import { cachedByKey } from "../lib/cache.ts";
@@ -85,7 +85,7 @@ export function countTimelineDays(grouped: readonly { anchor: number }[], days: 
   return counts;
 }
 
-export async function loadTimeline(q: TimelineQuery): Promise<Omit<TimelineResponse, "hot">> {
+export async function loadTimeline(q: TimelineQuery, lang: SiteLanguage = "zh"): Promise<Omit<TimelineResponse, "hot">> {
   const now = q.now ?? new Date();
   const limit = Math.min(Math.max(q.limit ?? 20, 1), 40);
   const bind = binding(q);
@@ -150,7 +150,7 @@ export async function loadTimeline(q: TimelineQuery): Promise<Omit<TimelineRespo
   const cards: TimelineCard[] = planned.flatMap(({ id, key, anchorAt, group }) => {
     const row = rows.get(id);
     if (!row) return [];
-    return [{ key, anchorAt, item: toFeedItemSummary(row), group }];
+    return [{ key, anchorAt, item: toFeedItemSummary(row, lang), group }];
   });
 
   // Day header counts for the days on this page, over the full grouped set.

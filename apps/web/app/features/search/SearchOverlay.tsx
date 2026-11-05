@@ -2,7 +2,8 @@
 // already up — the field is focused inside the same tap, which iOS requires — and searches 全部动态
 // (/all?q=…). Below the field: this browser's recent searches, topics to browse and what is hot now.
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Form, Link, useLocation, useNavigation } from "react-router";
+import { Form, useLocation, useNavigation } from "react-router";
+import { LocalizedLink as Link, useSiteLanguage, withLanguageHref } from "../i18n/SiteLanguage.tsx";
 import type { SearchSuggestions } from "@aihot/contracts/site";
 import { IconClose, IconSearch } from "../../components/icons";
 import { addRecentSearch, clearRecentSearches, useRecentSearches } from "../../lib/local-state";
@@ -36,14 +37,18 @@ export function openSearch(query = "", trigger?: HTMLElement) {
   setOpen(true);
 }
 
-let suggestions: Promise<SearchSuggestions> | null = null;
+const suggestions = new Map<string, Promise<SearchSuggestions>>();
 
-/** Share only an ongoing read; the HTTP cache owns freshness and failed reads can be retried. */
-function loadSuggestions() {
-  suggestions ??= fetch('/api/site/search/suggestions')
-    .then(r => { if (!r.ok) throw new Error(String(r.status)); return r.json() as Promise<SearchSuggestions>; })
-    .finally(() => { suggestions = null; });
-  return suggestions;
+/** Share only an ongoing read per language; the HTTP cache owns freshness. */
+function loadSuggestions(lang: "zh" | "en") {
+  let pending = suggestions.get(lang);
+  if (!pending) {
+    pending = fetch(withLanguageHref('/api/site/search/suggestions', lang))
+      .then(r => { if (!r.ok) throw new Error(String(r.status)); return r.json() as Promise<SearchSuggestions>; })
+      .finally(() => { suggestions.delete(lang); });
+    suggestions.set(lang, pending);
+  }
+  return pending;
 }
 
 const RANK_COLOR = ["text-rank-1", "text-rank-2", "text-rank-3"];
@@ -56,6 +61,7 @@ export function SearchOverlay() {
   const [hasText, setHasText] = useState(false);
   const recent = useRecentSearches();
   const navigation = useNavigation();
+  const lang = useSiteLanguage();
   const { key } = useLocation();
   const [more, setMore] = useState<Awaited<ReturnType<typeof loadSuggestions>> | null>(null);
 
@@ -76,7 +82,7 @@ export function SearchOverlay() {
     let active = true;
     setHasText(!!input.current?.value);
     setMore(null);
-    void loadSuggestions().then(value => { if (active) setMore(value); }).catch(() => {});
+    void loadSuggestions(lang).then(value => { if (active) setMore(value); }).catch(() => {});
     // At the desktop breakpoint this layer is hidden by CSS; it must stop holding the page still too.
     const desktop = window.matchMedia("(min-width: 961px)");
     const onResize = () => { if (desktop.matches) close(); };
@@ -86,7 +92,7 @@ export function SearchOverlay() {
       active = false;
       desktop.removeEventListener("change", onResize);
     };
-  }, [shown]);
+  }, [shown, lang]);
 
   // Leaving for the results (or anywhere) closes the search.
   useEffect(() => {
@@ -108,14 +114,14 @@ export function SearchOverlay() {
       ref={panel}
       role="dialog"
       aria-modal="true"
-      aria-label="搜索"
+      aria-label={lang === "en" ? "Search" : "搜索"}
       tabIndex={-1}
       inert={!shown}
       className={`fixed inset-0 z-[75] flex flex-col bg-bg pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] transition-[opacity,transform] duration-200 ease-[var(--ease-out-quart)] lg:hidden ${shown ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-1 opacity-0"}`}
     >
       <Form
         method="get"
-        action="/all"
+        action={withLanguageHref("/all", lang)}
         role="search"
         onSubmit={(e) => {
           const q = input.current?.value.trim() ?? "";
@@ -128,7 +134,7 @@ export function SearchOverlay() {
         className="flex h-14 shrink-0 items-center gap-1 pl-4 pr-1 pt-[env(safe-area-inset-top)]"
       >
         <label className="relative flex-1">
-          <span className="sr-only">搜索标题、摘要和正文</span>
+          <span className="sr-only">{lang === "en" ? "Search titles, summaries and text" : "搜索标题、摘要和正文"}</span>
           <IconSearch size={18} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-4" />
           <input
             ref={input}
@@ -136,7 +142,7 @@ export function SearchOverlay() {
             type="search"
             onInput={(e) => setHasText(!!e.currentTarget.value)}
             tabIndex={shown ? 0 : -1}
-            placeholder="搜索标题、摘要和正文"
+            placeholder={lang === "en" ? "Search titles, summaries and text" : "搜索标题、摘要和正文"}
             maxLength={200}
             autoComplete="off"
             enterKeyHint="search"
@@ -168,7 +174,7 @@ export function SearchOverlay() {
           {recent.length > 0 && (
             <section className="pt-3">
               <div className="flex items-center justify-between">
-                <h2 className="text-[13px] font-semibold text-ink-3">最近搜索</h2>
+                <h2 className="text-[13px] font-semibold text-ink-3">{lang === "en" ? "Recent searches" : "最近搜索"}</h2>
                 <button type="button" onClick={clearRecentSearches} className="-mr-2 h-11 px-2 text-[13px] text-ink-4">
                   清除
                 </button>
@@ -185,7 +191,7 @@ export function SearchOverlay() {
 
           {companies.length > 0 && (
             <section className="pt-6">
-              <h2 className="text-[13px] font-semibold text-ink-3">按主题找</h2>
+              <h2 className="text-[13px] font-semibold text-ink-3">{lang === "en" ? "Browse by topic" : "按主题找"}</h2>
               <div className="mt-2.5 flex flex-wrap gap-2">
                 {companies.map((t) => (
                   <Link viewTransition key={t.slug} to={`/topics/${t.slug}`} className={`${chip} bg-bg-sunk text-ink-2 ring-1 ring-inset ring-line-soft active:bg-bg-muted dark:bg-bg-muted/60`}>
@@ -193,7 +199,7 @@ export function SearchOverlay() {
                   </Link>
                 ))}
                 <Link viewTransition to="/topics" className={`${chip} gap-0.5 font-medium text-accent`}>
-                  全部 {more!.topics.length} 个主题
+                  {lang === "en" ? `All ${more!.topics.length} topics` : `全部 ${more!.topics.length} 个主题`}
                 </Link>
               </div>
             </section>

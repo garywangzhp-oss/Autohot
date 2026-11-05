@@ -8,6 +8,8 @@ import { monthDay, weekdayShort } from "../../lib/format.ts";
 export const KINDS: ReportKind[] = ["daily", "weekly", "monthly"];
 export const KIND_PATH: Record<ReportKind, string> = { daily: "/daily", weekly: "/weekly", monthly: "/monthly" };
 export const KIND_LABEL: Record<ReportKind, string> = { daily: "日报", weekly: "周报", monthly: "月报" };
+export const KIND_LABEL_EN: Record<ReportKind, string> = { daily: "Daily", weekly: "Weekly", monthly: "Monthly" };
+export const kindLabel = (kind: ReportKind, lang: "zh" | "en"): string => lang === "en" ? KIND_LABEL_EN[kind] : KIND_LABEL[kind];
 
 export function kindFromPath(pathname: string): ReportKind {
   if (pathname.startsWith("/weekly")) return "weekly";

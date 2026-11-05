@@ -4,6 +4,7 @@
 import { forwardRef, useEffect, useLayoutEffect, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { IconChevronLeft } from "../icons";
+import { useSiteLanguage, withLanguageHref } from "../../features/i18n/SiteLanguage";
 import { historyIndex, previousScreen } from "./screens";
 import { markBack } from "./transitions";
 
@@ -70,6 +71,7 @@ export function PhoneBar({ back, title, large = false, sub, leading, center, act
 /** "‹ 精选": back through the reader's history, or to the page's parent when it was opened directly. */
 function BackButton({ to, label }: BackTarget) {
   const navigate = useNavigate();
+  const lang = useSiteLanguage();
   const { key } = useLocation();
   const [text, setText] = useState(label);
   useIsoLayoutEffect(() => {
@@ -83,7 +85,7 @@ function BackButton({ to, label }: BackTarget) {
       onClick={() => {
         markBack();
         if (historyIndex() > 0) navigate(-1);
-        else navigate(to, { viewTransition: true });
+        else navigate(withLanguageHref(to, lang), { viewTransition: true });
       }}
       className="flex h-11 min-w-11 items-center pl-1 pr-2 text-[16px] text-accent transition-opacity active:opacity-50"
     >

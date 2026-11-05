@@ -4,6 +4,7 @@ import { BarButton, PhoneBar, type BackTarget } from "../../components/shell/Pho
 import { OutlineSheet, type OutlineEntry } from "../../components/ui/OutlineSheet";
 import { IconList } from "../../components/icons";
 import { KindSwitch, ReportArchive, ReportPhoneNav } from "./ReportNav";
+import { useSiteLanguage } from "../i18n/SiteLanguage";
 
 /**
  * Report pages sit beside their own archive column (desktop), flush against the site sidebar. Phones get
@@ -24,6 +25,7 @@ export function ReportLayout({ kind, index, current, today, outline = [], back, 
   children: ReactNode;
 }) {
   const [outlineOpen, setOutlineOpen] = useState(false);
+  const en = useSiteLanguage() === "en";
   return (
     <div className="report-shell lg:-mx-7 lg:-mb-[72px] lg:-mt-6 lg:flex lg:min-h-dvh">
       <ReportArchive kind={kind} index={index} current={current} />
@@ -36,14 +38,14 @@ export function ReportLayout({ kind, index, current, today, outline = [], back, 
               center={<KindSwitch kind={kind} phone />}
               actions={
                 outline.length > 0 && (
-                  <BarButton label="本期目录" onClick={() => setOutlineOpen(true)}>
+                  <BarButton label={en ? "Issue contents" : "本期目录"} onClick={() => setOutlineOpen(true)}>
                     <IconList size={21} />
                   </BarButton>
                 )
               }
             />
             <ReportPhoneNav kind={kind} index={index} current={current} today={today} />
-            {outline.length > 0 && <OutlineSheet title="本期目录" open={outlineOpen} onClose={() => setOutlineOpen(false)} outline={outline} />}
+            {outline.length > 0 && <OutlineSheet title={en ? "Issue contents" : "本期目录"} open={outlineOpen} onClose={() => setOutlineOpen(false)} outline={outline} />}
           </>
         )}
         <div className="w-full lg:max-w-[1160px]">{children}</div>
