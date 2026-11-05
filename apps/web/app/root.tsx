@@ -13,7 +13,7 @@ import { TabBar } from "./components/shell/TabBar";
 import { PullToRefresh } from "./components/shell/PullToRefresh";
 import { usePageTransition } from "./components/shell/transitions";
 import { SearchOverlay } from "./features/search/SearchOverlay";
-import { GoogleAnalytics } from "./features/analytics/GoogleAnalytics";
+import { PrivacyConsent } from "./features/analytics/PrivacyConsent";
 import { BackToTop, NavigationProgress } from "./components/shell/Chrome";
 import { buttonClass } from "./components/ui/Controls";
 import { rememberPage, THEME_BOOT_SCRIPT, useThemeSync } from "./lib/local-state";
@@ -50,7 +50,6 @@ export const shouldRevalidate: ShouldRevalidateFunction = () => false;
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const site = useRouteLoaderData<typeof loader>("root");
-  const { pathname } = useLocation();
   const [documentRelease] = useState(site?.release ?? null);
   return (
     <html lang={SITE.locale} suppressHydrationWarning>
@@ -61,13 +60,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="theme-color" media="(prefers-color-scheme: light)" content="#faf9f6" />
         <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#13191c" />
         <meta name="apple-mobile-web-app-title" content={SITE.name} />
-        {SITE.adsenseClientId && !pathname.startsWith("/admin") && (
-          <script
-            async
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(SITE.adsenseClientId)}`}
-            crossOrigin="anonymous"
-          />
-        )}
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
         {webModules().map((m) => m.root?.bootScript && <script key={m.name} dangerouslySetInnerHTML={{ __html: m.root.bootScript }} />)}
         <Meta />
@@ -75,7 +67,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {children}
-        <GoogleAnalytics measurementId={site?.analyticsId ?? null} />
+        <PrivacyConsent measurementId={site?.analyticsId ?? null} adsenseClientId={SITE.adsenseClientId} />
         <ScrollRestoration getKey={(location) => location.key} />
         <Scripts />
       </body>

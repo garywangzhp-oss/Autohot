@@ -61,7 +61,7 @@ export const SITE = {
    */
   interfaceVersion: "4.0.0",
   /** 对外联系邮箱（选填）：llms.txt 和给 Agent 的使用说明里会写。 */
-  contactEmail: null as string | null,
+  contactEmail: "garywangwork@foxmail.com" as string | null,
   /** 关于页底部的一行小字（选填）。 */
   footerNote: "由 AIHOT 开源框架驱动",
   /** 中国大陆网站的 ICP 备案号（选填），填了就显示在侧栏底部和“我的”页底部，并链接到工信部备案系统。 */
@@ -100,7 +100,7 @@ export const POLICY = {
     headers: null as null | Record<string, string>,
   },
   privacy: {
-    description: "本站如何处理浏览器本地数据、反馈资料与访问日志。",
+    description: "本站如何处理浏览器本地数据、反馈、订阅、访问统计、广告与网络日志。",
     /** llms.txt 里对这一页的一句说明（选填）。 */
     covers: null as string | null,
   },
@@ -238,7 +238,7 @@ export const CARDS: Record<string, { kicker: string; title: string; subtitle: st
   monthly: { kicker: withSubject("月报"), title: "一个月的变化", subtitle: "月度主线与关键事件回顾。" },
   about: { kicker: "关于", title: `关于 ${ABOUT_NAME}`, subtitle: SITE.description },
   terms: { kicker: "使用规则", title: `${SITE.name} 使用规则`, subtitle: "网页、API、RSS 与 MCP 的使用范围。" },
-  privacy: { kicker: "隐私说明", title: `${SITE.name} 隐私说明`, subtitle: "访问日志、浏览器本地数据与反馈资料的处理方式。" },
+  privacy: { kicker: "隐私说明", title: `${SITE.name} 隐私说明`, subtitle: "本地数据、反馈、订阅、统计、广告与网络日志的处理方式。" },
   changelog: { kicker: "更新日志", title: `${SITE.name} 更新日志`, subtitle: "功能更新、优化、公告与下线记录。" },
   feedback: { kicker: "反馈", title: "告诉我们哪里可以更好", subtitle: "内容、功能、接入，或来源方的更正与下架请求。" },
 };

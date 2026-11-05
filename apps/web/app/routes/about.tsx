@@ -11,6 +11,7 @@ import { buttonClass } from "../components/ui/Controls";
 import { IconArrowRight } from "../components/icons";
 import { SignalRiver, type RiverSource } from "../features/about/SignalRiver";
 import { PhoneBar } from "../components/shell/PhoneBar";
+import { PrivacySettingsButton } from "../features/analytics/PrivacyConsent";
 import type { Screen } from "../components/shell/screens";
 
 export const handle: Screen = { tab: "me", name: "关于" };
@@ -296,6 +297,7 @@ export default function AboutPage() {
           <Link viewTransition to="/privacy" className="transition-colors hover:text-accent">
             隐私说明
           </Link>
+          <PrivacySettingsButton className="transition-colors hover:text-accent">Cookie 设置</PrivacySettingsButton>
         </nav>
       </footer>
     </div>
