@@ -2,7 +2,7 @@
 
 | Item | Value |
 |---|---|
-| Version | 1.0 |
+| Version | 1.1 |
 | Effective date | 2026-11-05 |
 | Controller | Gary Wang |
 | Contact | [garywangwork@foxmail.com](mailto:garywangwork@foxmail.com) |
@@ -21,7 +21,7 @@ This notice applies to AutoHot (including www.autohot.top, autohot.top, its publ
 
 **Feedback.** When you submit feedback, we store the message, optional email address, page address, any screenshot you attach, and a non-reversible rate-limiting identifier. We use this to answer feedback, investigate problems and prevent abuse. If the site has an internal collaboration tool connected, the feedback may be forwarded there for authorized staff to process.
 
-**Email subscriptions.** If you subscribe to the newsletter, we store the normalized email address, signup source and subscription time so we can send the requested updates. You may ask us to unsubscribe or delete the address using the contact details below.
+**Email subscriptions.** If you subscribe to the newsletter, we store the normalized email address, signup source, subscription time, language preference, confirmation and unsubscribe status, and a non-reversible hash and expiry for the confirmation link. After confirmation, we send the weekly briefing in your chosen language and record each issue's delivery status, provider message ID and retry information so we can prevent duplicate sends and diagnose delivery problems. Every email includes one-click unsubscribe. After you unsubscribe, we retain the minimum email and unsubscribe status needed to avoid sending to you again. You may also ask us to delete the subscription record using the contact details below.
 
 **Server and network logs.** To deliver pages, protect the service and diagnose failures, our servers, Cloudflare and the cloud hosting provider may process IP address, time, requested URL, browser type, error information and similar network data. We do not use these logs for advertising profiles. They are kept for the period reasonably necessary for security, billing and troubleshooting, then deleted or anonymized.
 
@@ -48,7 +48,7 @@ Where a legal basis is required, we rely on:
 
 ## 5. Service providers, sharing and international transfers
 
-We use Cloudflare for CDN, network security and tunnel connectivity; Tencent Cloud in Seoul, South Korea for hosting the website and database; and Google Analytics, Google AdSense and advertising partners for analytics and advertising. These providers may process information outside your country, including in the United States, South Korea and other locations where they operate. We use these services under their terms and applicable data-protection requirements.
+We use Cloudflare for CDN, network security and tunnel connectivity; Tencent Cloud in Seoul, South Korea for hosting the website and database; Resend to deliver subscription confirmations and weekly briefings; and Google Analytics, Google AdSense and advertising partners for analytics and advertising. These providers may process information outside your country, including in the United States, South Korea and other locations where they operate. We use these services under their terms and applicable data-protection requirements.
 
 We do not sell your personal information or give it to unrelated third parties for their own marketing, except where you choose to visit a third-party site, where required by law, or where necessary to protect legal rights.
 
@@ -59,7 +59,7 @@ Articles summarize and link to third-party sources. Opening an original article 
 - Browser data: kept on your device until you delete it or clear site data.
 - Privacy choices: kept in your browser until changed, withdrawn or cleared.
 - Feedback: kept while needed to resolve the request, handle disputes and maintain security records; upon a valid deletion request, we delete the message, email, page address and screenshot unless law requires retention.
-- Email subscriptions: kept until you unsubscribe or request deletion, or until the newsletter ends and the data is no longer needed.
+- Email subscriptions: confirmation and language preferences are kept while the subscription is active. After unsubscribe, we retain the minimum email and unsubscribe status needed to avoid sending again until you request deletion, the newsletter ends or the data is no longer needed. Delivery records are kept as long as needed for diagnostics, billing and duplicate prevention.
 - Server, Cloudflare and cloud-provider logs: kept for the shortest period needed for security, billing and troubleshooting, then deleted or anonymized.
 - Google Analytics and AdSense data: retained by Google under its policies and your consent settings.
 

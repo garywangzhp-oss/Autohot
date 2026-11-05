@@ -1,6 +1,24 @@
 {
-  "latestVersion": "2026-11-05T18:00",
+  "latestVersion": "2026-11-05T22:55",
   "releases": [
+    {
+      "date": "2026-11-05",
+      "time": "22:55",
+      "kind": "更新",
+      "title": "每周简报邮件订阅",
+      "kindEn": "Update",
+      "titleEn": "Weekly briefing email subscriptions",
+      "body": [
+        "订阅后先收到确认邮件，点击确认链接才正式生效；没有确认的邮箱不会收到周报。",
+        "确认后的邮箱每周一收到本周汽车行业精选，中文页订阅发中文，英文页订阅发英文；英文周报尚未生成时不会用中文正文代替。",
+        "每封邮件都有语言切换和一键退订，发送失败会自动重试，同一期不会重复发送。"
+      ],
+      "bodyEn": [
+        "New subscribers receive a confirmation email first; an address becomes active only after the link is opened.",
+        "Confirmed subscribers receive the week's selected automotive stories every Monday in the language used to subscribe. English emails wait for the English report instead of falling back to Chinese.",
+        "Every email includes language switching and one-click unsubscribe. Failed sends retry automatically, and the same issue is never sent twice."
+      ]
+    },
     {
       "date": "2026-11-05",
       "time": "18:00",

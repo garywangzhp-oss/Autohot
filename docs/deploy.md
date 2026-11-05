@@ -160,7 +160,17 @@ docker compose run --rm setup && docker compose up -d
 - **AdSense 站点接入**：`site/site.ts` 的 `SITE.adsenseClientId` 已配置发布商 ID，`site/public/ads.txt` 声明了 `google.com` 授权卖方。公开页面只在读者同意“广告”后加载 AdSense，后台不加载；读者可通过“Cookie 设置”随时撤回。面向 EEA/英国投放广告前，仍需在 AdSense 的“隐私和消息”中启用 Google 认证 CMP。
 - **全站英文版**：页面切换后使用 `?lang=en`，站内链接会保留语言。精选和公开条目的英文标题、摘要、推荐理由及获准展示的正文由 worker 写入 `publication_localizations`；日报、周报和月报从这些英文条目生成 `report_localizations`，读者打开页面时不调用模型。迁移是 `0061_publication_localizations.sql`、`0062_report_localizations.sql`、`0063_localization_attempts.sql`。默认每 5 分钟处理 20 条，可用 `LOCALIZE_EN_LIMIT` 调整；翻译使用后台“精选全文翻译”所选模型。尚未完成英文翻译的条目会回退到原标题/原摘要或中文，不会阻塞页面。
 - **访问统计与广告同意**：在 `.env` 设置 `GA4_MEASUREMENT_ID=G-XXXXXXXXXX`。首次访问会显示统一的隐私选择，访问统计和广告默认关闭；只有相应选项获准后才加载 Google Analytics 4 或 AdSense，并通过 Google Consent Mode v2 传递选择。`/admin` 不加载；页面和“我的”页提供“Cookie 设置”，可随时修改或撤回。
-- **新增邮箱订阅**：首页搜索框下方和日报出刊时间旁有订阅按钮，点击后打开邮箱弹窗；地址保存在 `email_subscriptions`（迁移 `0058` 自动建表）。当前负责收集订阅地址；发送邮件需要再接入一个邮件服务商。
+- **免费周报邮件订阅**：首页和日报页的订阅弹窗使用 Resend 发送双重确认邮件；确认后每周一发送中文或英文周报摘要，邮件支持语言切换、一键退订、失败退避重试和按“订阅者 + 期号 + 语言”去重。英文订阅只会在英文周报版本已生成后发送，不会拿中文正文代替。迁移是 `0058_email_subscriptions.sql`、`0064_email_subscription_preferences.sql`、`0065_newsletter_deliveries.sql`；Resend 预算在首次发信时幂等创建。上线前在 Resend 验证发件域名，在 Cloudflare 配置 SPF、DKIM、DMARC，并在服务器 `.env` 填 `RESEND_API_KEY`、`NEWSLETTER_FROM`、`NEWSLETTER_TOKEN_SECRET`，再把 `NEWSLETTER_SEND_ENABLED` 设为 `true`。例如：
+
+  ```dotenv
+  NEWSLETTER_SEND_ENABLED=true
+  RESEND_API_KEY=re_xxxxxxxx
+  NEWSLETTER_FROM='AutoHot <briefing@autohot.top>'
+  NEWSLETTER_REPLY_TO=garywangwork@foxmail.com
+  NEWSLETTER_TOKEN_SECRET=<openssl rand -hex 32 的结果>
+  ```
+
+  配置不完整时接口返回“暂时无法使用”，不会把地址入库后假装订阅成功。更新时按上方顺序让 `setup` 跑完新迁移，再重启 `api` 和 `worker`。
 - **新增 JEV 影子评分闸门**：正常的两轮评分完全不变；每次评分提交后，模块再通过 Command Code 的 `typesafe/jev` 根据第一轮分值做一次“要不要第二次评分”的模拟决定，并把 JEV 答案和真实第二轮分数、最终是否达到门槛写入 `selection_gate_shadow`（迁移 `0059`，索引 `0060`）。它只记录，不改变精选和发布。默认关闭；在 `.env` 设 `JEV_SHADOW_ENABLED=true` 后，复用已有的 `COMMANDCODE_API_KEY`，重启 worker 生效；`JEV_MODEL` 默认 `typesafe/jev`，`JEV_SHADOW_DAILY_LIMIT` 默认每天最多 2000 次（填 0 关闭这个上限）。JEV 调用也走付费请求回执，服务名是 `commandcode`。
   查看最近记录和命中情况：
   ```sql
