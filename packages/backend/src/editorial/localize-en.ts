@@ -20,6 +20,23 @@ const SYSTEM_BODY = promptText("translate-en-body");
 const BATCH_CHARS = 3500;
 const MAX_CHARS = 60_000;
 
+/** Every article cited by a report, including report-only supplements and related reports. */
+const REPORT_CITATIONS = sql`
+  SELECT r.id AS report_id, j #>> '{}' AS article_id
+  FROM reports r CROSS JOIN LATERAL jsonb_path_query(r.content, '$.**.itemId') j
+  WHERE jsonb_typeof(j) = 'string'
+  UNION
+  SELECT r.id, value
+  FROM reports r CROSS JOIN LATERAL jsonb_array_elements_text(
+    CASE WHEN jsonb_typeof(r.content->'storyOrder') = 'array' THEN r.content->'storyOrder' ELSE '[]'::jsonb END
+  ) value
+  UNION
+  SELECT r.id, value
+  FROM reports r CROSS JOIN LATERAL jsonb_array_elements_text(
+    CASE WHEN jsonb_typeof(r.content->'highlights') = 'array' THEN r.content->'highlights' ELSE '[]'::jsonb END
+  ) value
+`;
+
 const CopySchema = z.object({
   title: z.string().trim().min(1).max(600),
   summary: z.string().trim().max(4000).nullable().catch(null),
@@ -227,6 +244,7 @@ export async function localizePendingEnglish(opts: { limit?: number; budgetMs?: 
   const configuredLimit = Number(process.env.LOCALIZE_EN_LIMIT ?? "");
   const limit = opts.limit ?? (Number.isFinite(configuredLimit) && configuredLimit > 0 ? configuredLimit : 20);
   const rows = await sql<Pending[]>`
+    WITH citations AS (${REPORT_CITATIONS})
     SELECT p.article_id, p.title, p.summary, p.reason, p.body_mode, p.channel,
       a.revision, a.language, a.body_html, a.body_text, a.x_post, tr.body_html AS zh_html,
       l.title AS en_title, l.summary AS en_summary, l.reason AS en_reason,
@@ -236,7 +254,8 @@ export async function localizePendingEnglish(opts: { limit?: number; budgetMs?: 
     LEFT JOIN translations tr ON tr.article_id = p.article_id AND tr.lang = 'zh' AND tr.revision >= a.revision
     LEFT JOIN publication_localizations l ON l.article_id = p.article_id AND l.lang = 'en'
     LEFT JOIN localization_attempts t ON t.entity_kind = 'publication' AND t.entity_id = p.article_id AND t.lang = 'en'
-    WHERE p.selected AND p.visibility = 'public'
+    WHERE p.visibility = 'public'
+      AND (p.selected OR p.article_id IN (SELECT article_id FROM citations))
       AND (
         l.article_id IS NULL OR l.revision < a.revision OR
         (p.body_mode = 'full' AND coalesce(l.body_complete, false) = false AND (a.body_html IS NOT NULL OR tr.body_html IS NOT NULL OR a.x_post->>'text' IS NOT NULL))

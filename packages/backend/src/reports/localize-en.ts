@@ -15,6 +15,23 @@ interface LocalizedItem {
   summary: string | null;
 }
 
+/** Every article cited by a report, including report-only supplements and related reports. */
+const REPORT_CITATIONS = sql`
+  SELECT r.id AS report_id, j #>> '{}' AS article_id
+  FROM reports r CROSS JOIN LATERAL jsonb_path_query(r.content, '$.**.itemId') j
+  WHERE jsonb_typeof(j) = 'string'
+  UNION
+  SELECT r.id, value
+  FROM reports r CROSS JOIN LATERAL jsonb_array_elements_text(
+    CASE WHEN jsonb_typeof(r.content->'storyOrder') = 'array' THEN r.content->'storyOrder' ELSE '[]'::jsonb END
+  ) value
+  UNION
+  SELECT r.id, value
+  FROM reports r CROSS JOIN LATERAL jsonb_array_elements_text(
+    CASE WHEN jsonb_typeof(r.content->'highlights') = 'array' THEN r.content->'highlights' ELSE '[]'::jsonb END
+  ) value
+`;
+
 export interface ReportLocalizeResult {
   reportId: number;
   kind: "daily" | "weekly" | "monthly";
@@ -102,10 +119,20 @@ function itemIds(content: Content): string[] {
 /** Rebuild English copies for recent reports and any report that has never had one. */
 export async function localizePendingReports(opts: { limit?: number } = {}): Promise<{ done: ReportLocalizeResult[] }> {
   const rows = await sql<Array<{ id: number; kind: "daily" | "weekly" | "monthly"; key: string; revision: number; content: Content; en_revision: number | null }>>`
+    WITH citations AS (${REPORT_CITATIONS})
     SELECT r.id, r.kind, r.key, r.revision, r.content, l.revision AS en_revision
     FROM reports r
     LEFT JOIN report_localizations l ON l.report_id = r.id AND l.lang = 'en'
     WHERE l.report_id IS NULL OR l.revision < r.revision OR r.generated_at > now() - interval '14 days'
+      OR EXISTS (
+        SELECT 1
+        FROM citations c
+        JOIN publications p ON p.article_id = c.article_id
+        JOIN articles a ON a.id = p.article_id
+        LEFT JOIN publication_localizations pl
+          ON pl.article_id = p.article_id AND pl.lang = 'en' AND pl.revision >= a.revision
+        WHERE c.report_id = r.id AND p.visibility = 'public' AND pl.article_id IS NULL
+      )
     ORDER BY r.generated_at DESC
     LIMIT ${opts.limit ?? 80}`;
   const done: ReportLocalizeResult[] = [];
