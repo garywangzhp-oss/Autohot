@@ -90,6 +90,7 @@ export function PrivacyConsent({ measurementId, adsenseClientId }: { measurement
   const admin = location.pathname === "/admin" || location.pathname.startsWith("/admin/");
   const hasAnalytics = Boolean(measurementId);
   const hasAds = Boolean(adsenseClientId);
+  const services = hasAnalytics && hasAds ? "Google Analytics 和 Google AdSense" : hasAnalytics ? "Google Analytics" : "Google AdSense";
   const purpose = hasAnalytics && hasAds ? "了解访问情况和展示广告" : hasAnalytics ? "了解访问情况" : "展示和衡量广告";
   const settingsLead = hasAnalytics && hasAds ? "你可以分别控制访问统计和广告。" : hasAnalytics ? "你可以控制是否启用访问统计。" : "你可以控制是否启用广告。";
   const [ready, setReady] = useState(false);
@@ -173,29 +174,31 @@ export function PrivacyConsent({ measurementId, adsenseClientId }: { measurement
 
   if (panel === "notice") {
     return (
-      <aside role="dialog" aria-label="隐私选择" className="fixed inset-x-3 bottom-3 z-[70] mx-auto max-w-xl rounded-card border border-line-strong bg-surface p-4 text-[13px] leading-relaxed text-ink-3 shadow-[var(--shadow-pop)] sm:bottom-5 sm:p-5">
-        <p className="text-[14px] font-semibold text-ink">你的隐私选择</p>
-        <p className="mt-1">
-          必要功能会一直启用。只有你同意后，我们才会加载 {hasAnalytics && hasAds ? "Google Analytics 和 Google AdSense" : hasAnalytics ? "Google Analytics" : "Google AdSense"}，用于{purpose}。
+      <aside role="dialog" aria-labelledby="privacy-choice-title" aria-describedby="privacy-choice-description" className="fixed inset-x-3 bottom-[calc(64px+env(safe-area-inset-bottom))] z-[70] mx-auto max-w-xl rounded-card border border-line-strong bg-surface p-4 text-[13px] leading-relaxed text-ink-3 shadow-[var(--shadow-pop)] sm:p-5 lg:bottom-5">
+        <p id="privacy-choice-title" className="text-[15px] font-semibold text-ink">你的隐私选择</p>
+        <p id="privacy-choice-description" className="mt-1">
+          我们使用 {services}，用于{purpose}。相关功能默认关闭，拒绝不会影响阅读。
         </p>
         <p className="mt-1 text-[12px] text-ink-4">
-          你可以拒绝非必要功能，不影响阅读。详见 <a href="/privacy" className="text-accent hover:underline">隐私说明</a>。
+          你可以接受全部，或只允许必要功能。详见 <a href="/privacy" className="text-accent hover:underline">隐私说明</a>。
         </p>
         <div className="mt-3 grid grid-cols-2 gap-2">
-          <button type="button" onClick={() => save({ analytics: false, ads: false })} className="h-9 rounded-full border border-line-strong px-4 text-[13px] font-medium text-ink-2 hover:border-ink-4">仅必要</button>
-          <button type="button" onClick={() => save({ analytics: hasAnalytics, ads: hasAds })} className="h-9 rounded-full bg-accent px-4 text-[13px] font-medium text-accent-contrast hover:bg-accent-ink">接受全部</button>
+          <button type="button" onClick={() => save({ analytics: false, ads: false })} className="h-10 rounded-full border border-line-strong px-3 text-[13px] font-medium text-ink-2 hover:border-ink-4">拒绝非必要</button>
+          <button type="button" onClick={() => save({ analytics: hasAnalytics, ads: hasAds })} className="h-10 rounded-full bg-accent px-3 text-[13px] font-medium text-accent-contrast hover:bg-accent-ink">接受全部</button>
         </div>
-        <button type="button" onClick={() => setPanel("settings")} className="mt-2 text-[12px] text-accent hover:underline">管理选项</button>
+        <div className="mt-2 text-center">
+          <button type="button" onClick={() => setPanel("settings")} className="text-[12px] text-accent hover:underline">调整选项</button>
+        </div>
       </aside>
     );
   }
 
   return (
     <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/35 p-3 sm:items-center sm:p-5" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target && decided) setPanel(null); }}>
-      <section role="dialog" aria-modal="true" aria-label="Cookie 设置" className="max-h-[calc(100dvh-1.5rem)] w-full max-w-lg overflow-y-auto rounded-card border border-line-strong bg-surface p-5 text-ink-3 shadow-[var(--shadow-pop)]">
+      <section role="dialog" aria-modal="true" aria-labelledby="privacy-settings-title" className="max-h-[calc(100dvh-1.5rem)] w-full max-w-lg overflow-y-auto rounded-card border border-line-strong bg-surface p-5 text-ink-3 shadow-[var(--shadow-pop)]">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-[17px] font-bold text-ink">隐私设置</h2>
+            <h2 id="privacy-settings-title" className="text-[17px] font-bold text-ink">隐私设置</h2>
             <p className="mt-1 text-[12.5px] leading-relaxed text-ink-4">{settingsLead}必要功能用于登录管理、安全防护和记住本机设置，无法关闭。</p>
           </div>
           {decided && <button type="button" onClick={() => setPanel(null)} className="shrink-0 text-[12.5px] text-ink-4 hover:text-ink">关闭</button>}
@@ -209,8 +212,8 @@ export function PrivacyConsent({ measurementId, adsenseClientId }: { measurement
           你可以随时回到这里修改或撤回同意。EEA/英国用户还可能在广告加载时看到 Google 认证同意管理平台提供的确认提示。详情见 <a href="/privacy" className="text-accent hover:underline">隐私说明</a>。
         </p>
         <div className="mt-4 flex flex-wrap justify-end gap-2">
-          <button type="button" onClick={() => { if (decided) setPanel(null); else setPanel("notice"); }} className="h-9 rounded-full border border-line-strong px-4 text-[13px] font-medium text-ink-2 hover:border-ink-4">{decided ? "取消" : "返回"}</button>
-          <button type="button" onClick={() => save(draft)} className="h-9 rounded-full bg-accent px-4 text-[13px] font-medium text-accent-contrast hover:bg-accent-ink">保存设置</button>
+          <button type="button" onClick={() => { if (decided) setPanel(null); else setPanel("notice"); }} className="h-10 rounded-full border border-line-strong px-4 text-[13px] font-medium text-ink-2 hover:border-ink-4">{decided ? "取消" : "返回"}</button>
+          <button type="button" onClick={() => save(draft)} className="h-10 rounded-full bg-accent px-4 text-[13px] font-medium text-accent-contrast hover:bg-accent-ink">保存设置</button>
         </div>
       </section>
     </div>
