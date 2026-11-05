@@ -66,7 +66,7 @@ export function FeedBar({ base, category, channel }: { base: "/" | "/all"; categ
     <>
       <PhoneBar
         leading={
-          <Link to="/" aria-label={`${SITE.name} 首页`} className="flex h-11 items-center pl-2.5 pr-2 text-ink">
+          <Link to="/" aria-label={lang === "en" ? `${SITE.name} home` : `${SITE.name} 首页`} className="flex h-11 items-center pl-2.5 pr-2 text-ink">
             <Wordmark size={17} />
           </Link>
         }
@@ -138,13 +138,13 @@ export function ActiveFilters({ base, category, channel, tag }: { base: string; 
   return (
     <div className="flex flex-wrap gap-2 pb-3 pt-1 lg:hidden">
       {label && (
-        <Link to={hrefWith(base, params, { category: null, channel: null })} aria-label={`${lang === "en" ? "Clear filter" : "取消筛选"}：${label}`} className={chip}>
+        <Link to={hrefWith(base, params, { category: null, channel: null })} aria-label={`${lang === "en" ? "Clear filter" : "取消筛选"}${lang === "en" ? ": " : "："}${label}`} className={chip}>
           {lang === "en" ? `Only ${label}` : `只看${label}`}
           <IconClose size={14} strokeWidth={2} />
         </Link>
       )}
       {tag && (
-        <Link to={hrefWith(base, params, { tag: null })} aria-label={`取消标签：${tag}`} className={chip}>
+        <Link to={hrefWith(base, params, { tag: null })} aria-label={lang === "en" ? `Clear tag: ${tag}` : `取消标签：${tag}`} className={chip}>
           <span className="truncate">#{tag}</span>
           <IconClose size={14} strokeWidth={2} className="shrink-0" />
         </Link>

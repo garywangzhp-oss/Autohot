@@ -6,20 +6,34 @@
       "time": "18:00",
       "kind": "更新",
       "title": "全站英文版",
+      "kindEn": "Update",
+      "titleEn": "Full-site English edition",
       "body": [
         "新增全站 EN 切换：导航、筛选、新闻详情、主题、日报周报月报和固定页面都会保留英文模式。",
         "精选文章的英文标题、摘要、推荐理由和获准展示的正文会在后台生成并保存；日报、周报、月报直接使用这些英文条目，读者打开页面不会触发模型调用。",
         "尚未翻译完成的条目会回退到原标题、原摘要或中文，不会让页面卡住。"
+      ],
+      "bodyEn": [
+        "Added a site-wide EN switch. Navigation, filters, story pages, topics, daily/weekly/monthly editions and fixed pages all keep English mode.",
+        "English headlines, summaries, editorial reasons and licensed body text are generated and stored in the background for selected stories. Reports reuse those English entries, so opening a page never triggers a model call.",
+        "Items that are not translated yet fall back to the original or Chinese copy instead of blocking the page."
       ]
     },    {
       "date": "2026-11-05",
       "time": "14:30",
       "kind": "更新",
       "title": "隐私选择与广告同意",
+      "kindEn": "Update",
+      "titleEn": "Privacy choices and advertising consent",
       "body": [
         "新增统一的隐私选择：访问统计和广告默认关闭，只有你明确同意后才加载 Google Analytics 或 Google AdSense。",
         "侧栏、关于页、“我的”页和隐私说明底部都能重新打开 Cookie 设置，随时修改或撤回同意。",
         "隐私说明已补充 Cloudflare、腾讯云、Google 统计与广告、邮件订阅、跨境处理和数据权利等内容。"
+      ],
+      "bodyEn": [
+        "Added one privacy-choice flow: analytics and advertising are off by default, and Google Analytics or Google AdSense loads only after explicit consent.",
+        "Cookie settings can be reopened from the sidebar, the About page, the Me page and the privacy notice to change or withdraw consent at any time.",
+        "The privacy notice now covers Cloudflare, Tencent Cloud, Google analytics and advertising, email subscriptions, international processing and data rights."
       ]
     },
     {
@@ -27,11 +41,19 @@
       "time": "09:30",
       "kind": "更新",
       "title": "信源扩到 218 个",
+      "kindEn": "Update",
+      "titleEn": "Expanded to 218 sources",
       "body": [
         "信源从 80 个扩到 218 个：新增 129 个网站（媒体、车企官方新闻室、行业机构）和 73 个视频频道与赛事账号。",
         "中文补上了汽车之家、盖世汽车、第一电动网、电动邦、电池网；中东补上了伊朗的 Pedal.ir 和 اسب بخار 两个汽车专业站，以及以色列 3 家、阿联酋 1 家。",
         "其中 6 个中文与伊朗站点通过网页列表抓取——这些站不提供 RSS 订阅。",
         "新源分成两层：81 个进精选与日报，137 个只作为热点榜的讨论证据。所以覆盖面大了一倍多，模型花销没有增加。"
+      ],
+      "bodyEn": [
+        "Expanded from 80 to 218 sources: 129 new websites, including media, automaker newsrooms and industry bodies, plus 73 video channels and motorsport accounts.",
+        "Added more Chinese automotive publishers and specialist sites across the Middle East, including Israel and the UAE.",
+        "Six Chinese and Iranian sites are read through web-list scraping because they do not offer RSS feeds.",
+        "The new sources are split into two tiers: 81 feed Featured and the daily edition, while 137 add discussion evidence to the trending ranking. Coverage more than doubled without increasing model spend."
       ]
     },
     {
@@ -39,10 +61,17 @@
       "time": "22:50",
       "kind": "更新",
       "title": "接上 X 与个人创作者",
+      "kindEn": "Update",
+      "titleEn": "Added X and independent creators",
       "body": [
         "接上 X（推特）：Tesla、BMW、Mercedes-Benz、BYD 四家官方账号，加上 Sawyer Merritt、Troy Teslike、CarNewsChina、Doug DeMuro、Jason Cammisa、Sandy Munro 六位业内创作者。",
         "另外补了 10 个免费的个人向来源：The Autopian、The Truth About Cars，以及 5 个汽车视频频道。",
         "每个信源可以自带图标，不再一律显示网站首字母。"
+      ],
+      "bodyEn": [
+        "Connected X: official accounts from Tesla, BMW, Mercedes-Benz and BYD, plus six industry creators including Sawyer Merritt, Troy Teslike, CarNewsChina, Doug DeMuro, Jason Cammisa and Sandy Munro.",
+        "Added 10 free independent sources, including The Autopian, The Truth About Cars and five automotive video channels.",
+        "Sources can now carry their own icons instead of always showing a site initial."
       ]
     },
     {
@@ -50,8 +79,13 @@
       "time": "21:25",
       "kind": "优化",
       "title": "分类栏不再被藏起来",
+      "kindEn": "Improvement",
+      "titleEn": "Category row no longer hidden",
       "body": [
         "精选和全部动态顶部的分类栏改成自动换行。之前排在第 13 个之后的分类会被横向滚动藏住，读者看不到，现在 16 个分类一次排开。"
+      ],
+      "bodyEn": [
+        "The category row at the top of Featured and All stories now wraps. Categories after the 13th used to be hidden in a horizontal scroller; all 16 are visible at once."
       ]
     },
     {
@@ -59,10 +93,17 @@
       "time": "11:31",
       "kind": "更新",
       "title": "改成全球汽车行业站",
+      "kindEn": "Update",
+      "titleEn": "Relaunched as a global automotive site",
       "body": [
         "16 个分类：新车、销量与市场、电动化、智能驾驶、汽车技术与软件、供应链、制造与工厂、企业与高管、行业趋势、政策法规、财务与资本、能源与充电、出行与商业模式、赛车运动、评测、观点。",
         "信源覆盖全球：车企官方新闻室、行业媒体、区域媒体，含日本、印度、东南亚、中东（伊朗、阿拉伯）、土耳其、拉美等地。",
         "精选门槛按 165 条人工标注的汽车行业样本重新校准；不同模型的分数量尺不一样，门槛跟着模型走。"
+      ],
+      "bodyEn": [
+        "Sixteen categories: new models, sales and market, electrification, autonomous driving, technology and software, supply chain, manufacturing, companies and executives, industry trends, policy and regulation, finance and capital, energy and charging, mobility, motorsport, reviews and opinion.",
+        "Sources now span the world: automaker newsrooms, industry media and regional publishers across Japan, India, Southeast Asia, the Middle East, Turkey, Latin America and beyond.",
+        "Selection thresholds were recalibrated on 165 manually labelled automotive stories. Different models use different score scales, so thresholds follow the model."
       ]
     },
     {
@@ -70,8 +111,13 @@
       "time": "10:00",
       "kind": "公告",
       "title": "网站上线",
+      "kindEn": "Announcement",
+      "titleEn": "Site launched",
       "body": [
         "搭起了这个站：自动盯住全球汽车信源、精选，把同一件事的多篇报道归到一起，每天出一份日报。"
+      ],
+      "bodyEn": [
+        "Built the first version: automatically follow global automotive sources, select the stories that matter, group reports about the same event and publish a daily edition."
       ]
     }
   ]

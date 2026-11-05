@@ -11,6 +11,7 @@ import { ReportPaper, reportOutline } from "../features/report/ReportPaper";
 import { KIND_LABEL, feedLink, kindFromPath, kindLabel } from "../features/report/format";
 import type { Screen } from "../components/shell/screens";
 import { loadParts } from "../site-modules";
+import { useSiteLanguage } from "../features/i18n/SiteLanguage";
 
 export const handle: Screen = { tab: "daily", name: "日报" };
 export { shouldRevalidate } from "../lib/page-reuse";
@@ -49,7 +50,7 @@ export function meta({ loaderData, location }: Route.MetaArgs) {
     image: `/og/reports/${r.kind}/${r.key}.png`,
     type: "article",
     jsonLd: reportLd(r, path, description),
-  }), feedLink(r.kind)];
+  }), feedLink(r.kind, en ? "en" : "zh")];
 }
 
 export function headers() {
@@ -58,8 +59,9 @@ export function headers() {
 
 export default function ReportDetailPage() {
   const { report, index, today } = useLoaderData<typeof loader>();
+  const lang = useSiteLanguage();
   return (
-    <ReportLayout kind={report.kind} index={index} current={report.key} today={today} outline={reportOutline(report)}>
+    <ReportLayout kind={report.kind} index={index} current={report.key} today={today} outline={reportOutline(report, lang)}>
       <ReportPaper report={report} index={index} editionAction={report.kind === "daily" ? REPORT_PARTS.map(({ name, part: Subscribe }) => <Subscribe key={name} kind={report.kind} />) : undefined} />
     </ReportLayout>
   );

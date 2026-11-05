@@ -151,7 +151,7 @@ export function SearchOverlay() {
           {hasText && (
             <button
               type="button"
-              aria-label="清空"
+              aria-label={lang === "en" ? "Clear" : "清空"}
               tabIndex={shown ? 0 : -1}
               onClick={() => {
                 if (input.current) input.current.value = "";
@@ -165,7 +165,7 @@ export function SearchOverlay() {
           )}
         </label>
         <button type="button" tabIndex={shown ? 0 : -1} onClick={close} className="h-11 shrink-0 px-3 text-[16px] text-accent">
-          取消
+          {lang === "en" ? "Cancel" : "取消"}
         </button>
       </Form>
 
@@ -176,7 +176,7 @@ export function SearchOverlay() {
               <div className="flex items-center justify-between">
                 <h2 className="text-[13px] font-semibold text-ink-3">{lang === "en" ? "Recent searches" : "最近搜索"}</h2>
                 <button type="button" onClick={clearRecentSearches} className="-mr-2 h-11 px-2 text-[13px] text-ink-4">
-                  清除
+                  {lang === "en" ? "Clear" : "清除"}
                 </button>
               </div>
               <div className="mt-1.5 flex flex-wrap gap-2">
@@ -207,7 +207,7 @@ export function SearchOverlay() {
 
           {(more?.hot.length ?? 0) > 0 && (
             <section className="pt-6">
-              <h2 className="text-[13px] font-semibold text-ink-3">正在热议</h2>
+              <h2 className="text-[13px] font-semibold text-ink-3">{lang === "en" ? "Trending now" : "正在热议"}</h2>
               <ol className="mt-1 divide-y divide-line-soft">
                 {more!.hot.map((h, i) => (
                   <li key={h.to}>

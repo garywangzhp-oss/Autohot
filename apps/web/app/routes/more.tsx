@@ -13,6 +13,7 @@ import { ThemeSwitch } from "../components/shell/ThemeSwitch";
 import { PrivacySettingsButton } from "../features/analytics/PrivacyConsent";
 import { LocalizedLink as Link, SiteLanguageToggle, useSiteLanguage, useSiteText } from "../features/i18n/SiteLanguage";
 import { IconBookmark, IconChevronRight, IconGrid, IconHeart, IconMessage, IconMoon, IconSparkles } from "../components/icons";
+import type { Route } from "./+types/more";
 
 export const handle: Screen = { tab: "me", name: "我的" };
 
@@ -20,8 +21,9 @@ export function headers() {
   return edgeTtl(300);
 }
 
-export function meta() {
-  return pageMeta({ title: "我的", path: "/more", noindex: true });
+export function meta({ location }: Route.MetaArgs) {
+  const en = new URLSearchParams(location.search).get("lang") === "en";
+  return pageMeta({ title: en ? "Me · AutoHot" : "我的", rawTitle: en, path: en ? "/more?lang=en" : "/more", noindex: true });
 }
 
 /**
@@ -46,13 +48,14 @@ function Group({ title, children }: { title?: string; children: ReactNode }) {
 }
 
 function RowLink({ row, dot = false }: { row: Row; dot?: boolean }) {
+  const en = useSiteLanguage() === "en";
   return (
     <li>
       <Link viewTransition to={row.to} className="flex min-h-[52px] items-center gap-3 px-4 text-[16px] font-medium text-ink transition-colors active:bg-bg-sunk lg:hover:bg-bg-sunk">
         <span className="text-ink-3">{row.icon}</span>
         <span className="flex flex-1 items-center gap-2">
           {row.label}
-          {dot && <span className="size-[7px] rounded-full bg-hot" aria-label="有新的更新" />}
+          {dot && <span className="size-[7px] rounded-full bg-hot" aria-label={en ? "New updates" : "有新的更新"} />}
         </span>
         {row.detail && <span className="text-[14px] font-normal text-ink-4">{row.detail}</span>}
         <IconChevronRight size={16} className="text-ink-4" />

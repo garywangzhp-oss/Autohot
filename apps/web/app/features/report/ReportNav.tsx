@@ -26,7 +26,7 @@ export function KindSwitch({ kind, phone = false }: { kind: ReportKind; phone?: 
 /** Desktop archive column: every issue of this kind, grouped, the current one highlighted. */
 export function ReportArchive({ kind, index, current }: { kind: ReportKind; index: ReportNavigationEntry[]; current: string | null }) {
   const lang = useSiteLanguage();
-  const groups = archiveGroups(kind, index);
+  const groups = archiveGroups(kind, index, lang);
   const openId = groups.find((g) => g.entries.some((e) => e.key === current))?.id ?? groups[0]?.id;
   return (
     <aside className="sticky top-0 hidden h-dvh w-[280px] shrink-0 flex-col border-r border-line bg-[color-mix(in_srgb,var(--sidebar)_50%,var(--surface))] pl-5 pr-3 lg:flex dark:bg-[color-mix(in_srgb,var(--sidebar)_50%,var(--bg))]">
@@ -66,7 +66,7 @@ function ArchiveGroup({ g, kind, current, initiallyOpen }: {
     return () => controller.abort();
   }, [open, kind, g.id, loaded, lang]);
   const entries = loaded ?? g.entries;
-  const mark = (key: string) => archiveMark(kind, key);
+  const mark = (key: string) => archiveMark(kind, key, lang);
   return (
     <details open={open} onToggle={(event) => setOpen(event.currentTarget.open)} className="disclosure group/month border-b border-line">
       <summary className="flex h-11 items-center gap-1.5 pl-1 pr-1.5 text-[13px] text-ink transition-colors hover:text-accent">
@@ -96,7 +96,7 @@ function ArchiveGroup({ g, kind, current, initiallyOpen }: {
           );
         })}
       </ul>}
-      {kind === "daily" && !open && <noscript><a href="/daily/archive">查看完整日报归档</a></noscript>}
+      {kind === "daily" && !open && <noscript><a href="/daily/archive">{lang === "en" ? "View the full daily archive" : "查看完整日报归档"}</a></noscript>}
     </details>
   );
 }
@@ -114,7 +114,7 @@ export function ReportPhoneNav({ kind, index, current, today }: { kind: ReportKi
         const on = e.key === current;
         return (
           <IntentLink key={e.key} to={reportPath(kind, e.key)} aria-current={on ? "page" : undefined} className={`${chip} ${on ? "border-ink bg-ink font-semibold text-bg" : "border-line-strong bg-surface text-ink-2 active:bg-bg-sunk"}`}>
-            {chipLabel(kind, e.key, index, today)}
+            {chipLabel(kind, e.key, index, today, lang)}
           </IntentLink>
         );
       })}

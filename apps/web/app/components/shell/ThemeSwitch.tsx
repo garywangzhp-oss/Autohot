@@ -1,17 +1,19 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { IconMonitor, IconMoon, IconSun } from "../icons";
 import { applyTheme, resolvedTheme, setThemePreference, useThemePreference, type ThemePreference } from "../../lib/local-state";
+import { useSiteLanguage } from "../../features/i18n/SiteLanguage";
 
 type Choice = "dark" | "system" | "light";
 
-const OPTIONS: Array<{ key: Choice; label: string; icon: ReactNode }> = [
-  { key: "dark", label: "深色", icon: <IconMoon size={14} /> },
-  { key: "system", label: "跟随系统", icon: <IconMonitor size={14} /> },
-  { key: "light", label: "浅色", icon: <IconSun size={14} /> },
+const OPTIONS: Array<{ key: Choice; label: Record<"zh" | "en", string>; icon: ReactNode }> = [
+  { key: "dark", label: { zh: "深色", en: "Dark" }, icon: <IconMoon size={14} /> },
+  { key: "system", label: { zh: "跟随系统", en: "System" }, icon: <IconMonitor size={14} /> },
+  { key: "light", label: { zh: "浅色", en: "Light" }, icon: <IconSun size={14} /> },
 ];
 
 /** Three-way appearance switch (dark / follow the system / light) with a sliding thumb. */
 export function ThemeSwitch({ className = "" }: { className?: string }) {
+  const lang = useSiteLanguage();
   const pref = useThemePreference();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -32,7 +34,7 @@ export function ThemeSwitch({ className = "" }: { className?: string }) {
   };
 
   return (
-    <div role="radiogroup" aria-label="外观" className={`relative grid h-[34px] grid-cols-3 rounded-full border border-line bg-bg-sunk p-[3px] ${className}`}>
+    <div role="radiogroup" aria-label={lang === "en" ? "Appearance" : "外观"} className={`relative grid h-[34px] grid-cols-3 rounded-full border border-line bg-bg-sunk p-[3px] ${className}`}>
       <span
         aria-hidden="true"
         className="absolute inset-y-[3px] left-[3px] w-[calc((100%-6px)/3)] rounded-full border border-line bg-surface shadow-[var(--shadow-card)] transition-transform duration-200 ease-[var(--ease-out-quart)]"
@@ -44,12 +46,12 @@ export function ThemeSwitch({ className = "" }: { className?: string }) {
           type="button"
           role="radio"
           aria-checked={current === o.key}
-          title={o.label}
+          title={o.label[lang]}
           onClick={() => choose(o.key)}
           className={`relative z-10 flex items-center justify-center rounded-full transition-colors duration-150 ${current === o.key ? "text-ink" : "text-ink-4 hover:text-ink-2"}`}
         >
           {o.icon}
-          <span className="sr-only">{o.label}</span>
+          <span className="sr-only">{o.label[lang]}</span>
         </button>
       ))}
     </div>

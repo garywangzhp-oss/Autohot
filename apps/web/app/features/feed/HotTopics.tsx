@@ -62,7 +62,7 @@ export function HotTopics({ entries }: { entries: HotStripEntry[] }) {
                 <Faces participants={e.participants} total={e.participantCount} size={20} interactive={false} />
               </span>
               <span className="flex items-center justify-end gap-2.5 sm:contents">
-                <span className="whitespace-nowrap text-right text-[12.5px] text-ink-4" title="热度指数">
+                <span className="whitespace-nowrap text-right text-[12.5px] text-ink-4" title={lang === "en" ? "Heat index" : "热度指数"}>
                   <span className="num text-[13.5px] font-semibold text-ink-2">{Math.round(e.heat)}</span> {t.heat}
                 </span>
                 <span className="flex w-5 justify-center">

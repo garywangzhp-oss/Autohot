@@ -42,24 +42,25 @@ export function StoryFollowups({ story, currentId }: { story: StoryRef; currentI
 }
 
 function Followups({items, more, story}: {items: StoryFollowup[]; more: boolean; story: StoryRef}) {
+  const lang = useSiteLanguage();
   return (
     <section className="mt-10 border-t border-line pt-5">
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-[14px] font-semibold text-ink">
-          事件后续 <span className="num font-normal text-ink-4">· {items.length}{more ? "+" : ""}</span>
+          {lang === "en" ? "Event updates" : "事件后续"} <span className="num font-normal text-ink-4">· {items.length}{more ? "+" : ""}</span>
         </h2>
-        <MoreLink to={`/story/${story.publicId}`}>查看事件全部</MoreLink>
+        <MoreLink to={`/story/${story.publicId}`}>{lang === "en" ? "View all updates" : "查看事件全部"}</MoreLink>
       </div>
       <ul className="divide-y divide-line-soft">
         {items.map((d) => (
           <li key={d.factId}>
             <Link viewTransition to={`/items/${d.representative.id}`} className="group flex flex-col gap-0.5 py-2.5 sm:flex-row sm:items-baseline sm:gap-3">
               <span className="flex min-w-0 flex-1 items-baseline gap-2">
-                <span className="shrink-0 rounded-mark bg-accent-soft px-1 text-[10.5px] leading-[16px] text-accent">同事件</span>
+                <span className="shrink-0 rounded-mark bg-accent-soft px-1 text-[10.5px] leading-[16px] text-accent">{lang === "en" ? "Same event" : "同事件"}</span>
                 <span className="min-w-0 text-[13.5px] leading-snug text-ink-2 group-hover:text-accent sm:truncate">{d.representative.title}</span>
               </span>
               <span className="shrink-0 pl-[46px] text-[12px] text-ink-4 sm:pl-0" suppressHydrationWarning>
-                {d.representative.source.name} · {relativeTime(d.representative.timelineAt)}
+                {d.representative.source.name} · {relativeTime(d.representative.timelineAt, Date.now(), lang)}
               </span>
             </Link>
           </li>

@@ -4,7 +4,7 @@
 import type { MetaDescriptor } from "react-router";
 import type { ReportDetail, TimelineFilters } from "@aihot/contracts/site";
 import { isCategoryKey, isChannelKey } from "@aihot/contracts/taxonomy";
-import { SITE, subjectAfter, withSubject } from "@aihot/site";
+import { SITE, SITE_EN, subjectAfter, withSubject } from "@aihot/site";
 
 /**
  * The site's address: SITE_URL while rendering on the server (what crawlers and share previews read),
@@ -67,15 +67,16 @@ export function titled(title: string): string {
 
 export function pageMeta(input: PageMetaInput): MetaDescriptor[] {
   const base = siteUrl();
-  const title = input.title ? (input.rawTitle ? input.title : titled(input.title)) : HOME_TITLE;
-  const description = input.description ?? SITE_DESCRIPTION;
+  const en = new URLSearchParams(input.path.split("?")[1] ?? "").get("lang") === "en";
+  const title = input.title ? (input.rawTitle ? input.title : (en ? `${input.title} · ${SITE_EN.name}` : titled(input.title))) : (en ? SITE_EN.homeTitle : HOME_TITLE);
+  const description = input.description ?? (en ? SITE_EN.description : SITE_DESCRIPTION);
   const url = `${base}${input.path}`;
   const image = input.image ? (input.image.startsWith("http") ? input.image : `${base}${input.image}`) : `${base}/og/site.png`;
   const tags: MetaDescriptor[] = [
     { title },
     { name: "description", content: description },
     { tagName: "link", rel: "canonical", href: url },
-    { property: "og:site_name", content: SITE.name },
+    { property: "og:site_name", content: en ? SITE_EN.name : SITE.name },
     { property: "og:type", content: input.type ?? "website" },
     { property: "og:title", content: input.title ?? HOME_TITLE },
     { property: "og:description", content: description },
@@ -83,7 +84,7 @@ export function pageMeta(input: PageMetaInput): MetaDescriptor[] {
     { property: "og:image", content: image },
     { property: "og:image:width", content: "1200" },
     { property: "og:image:height", content: "630" },
-    { property: "og:locale", content: SITE.locale.replace("-", "_") },
+    { property: "og:locale", content: en ? "en_US" : SITE.locale.replace("-", "_") },
     { name: "twitter:card", content: "summary_large_image" },
     { name: "twitter:title", content: input.title ?? HOME_TITLE },
     { name: "twitter:description", content: description },
@@ -94,14 +95,14 @@ export function pageMeta(input: PageMetaInput): MetaDescriptor[] {
   return tags;
 }
 
-export function organizationLd() {
+export function organizationLd(lang: "zh" | "en" = "zh") {
   const base = siteUrl();
   const founder = SITE.organization.founder;
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
     "@id": `${base}/#organization`,
-    name: SITE.organization.name,
+    name: lang === "en" ? SITE_EN.name : SITE.organization.name,
     url: base,
     logo: `${base}/icon.png`,
     ...(founder ? {
@@ -132,40 +133,41 @@ const orgRef = () => ({ "@id": `${siteUrl()}/#organization` });
  * The home page's machine description: the site, and the site as a dataset with its feeds and API.
  * Model-written content never names a person as its author.
  */
-export function siteLd() {
+export function siteLd(lang: "zh" | "en" = "zh") {
   const base = siteUrl();
+  const en = lang === "en";
   return [
-    organizationLd(),
+    organizationLd(lang),
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
       "@id": `${base}/#website`,
-      name: SITE.name,
-      url: base,
-      description: SITE_DESCRIPTION,
-      inLanguage: SITE.locale,
+      name: en ? SITE_EN.name : SITE.name,
+      url: en ? `${base}/?lang=en` : base,
+      description: en ? SITE_EN.description : SITE_DESCRIPTION,
+      inLanguage: en ? "en-US" : SITE.locale,
       publisher: orgRef(),
     },
     {
       "@context": "https://schema.org",
       "@type": "Dataset",
       "@id": `${base}/#dataset`,
-      name: `${SITE.name} — ${withSubject("行业动态数据集")}`,
-      description: `${subjectAfter("持续更新的中文", "行业动态")}：每条附中文摘要、评分与原文出处，${subjectAfter("另有每日精选与", "日报")}，可通过 RSS 与公开 API 获取。`,
-      url: base,
-      inLanguage: SITE.locale,
+      name: en ? `${SITE_EN.name} — Global automotive news dataset` : `${SITE.name} — ${withSubject("行业动态数据集")}`,
+      description: en ? "A continuously updated dataset of global automotive stories, each with a summary, score and original source, plus a daily selection. Available through RSS and the public API." : `${subjectAfter("持续更新的中文", "行业动态")}：每条附中文摘要、评分与原文出处，${subjectAfter("另有每日精选与", "日报")}，可通过 RSS 与公开 API 获取。`,
+      url: en ? `${base}/?lang=en` : base,
+      inLanguage: en ? "en-US" : SITE.locale,
       isAccessibleForFree: true,
       ...(SITE.since ? { temporalCoverage: `${SITE.since}/..` } : {}),
-      keywords: SITE.keywords,
+      keywords: en ? SITE_EN.keywords : SITE.keywords,
       creator: orgRef(),
       publisher: orgRef(),
       distribution: [
-        { "@type": "DataDownload", name: "精选 RSS", encodingFormat: "application/rss+xml", contentUrl: `${base}/feed.xml` },
-        { "@type": "DataDownload", name: "全部动态 RSS", encodingFormat: "application/rss+xml", contentUrl: `${base}/feed/all.xml` },
-        { "@type": "DataDownload", name: `${withSubject("日报")} RSS`, encodingFormat: "application/rss+xml", contentUrl: `${base}/feed/daily.xml` },
-        { "@type": "DataDownload", name: `${withSubject("周报")} RSS`, encodingFormat: "application/rss+xml", contentUrl: `${base}/feed/weekly.xml` },
-        { "@type": "DataDownload", name: `${withSubject("月报")} RSS`, encodingFormat: "application/rss+xml", contentUrl: `${base}/feed/monthly.xml` },
-        { "@type": "DataDownload", name: "公开 API v1", encodingFormat: "application/json", contentUrl: `${base}/api/v1/items` },
+        { "@type": "DataDownload", name: en ? "Featured RSS" : "精选 RSS", encodingFormat: "application/rss+xml", contentUrl: `${base}/feed.xml` },
+        { "@type": "DataDownload", name: en ? "All stories RSS" : "全部动态 RSS", encodingFormat: "application/rss+xml", contentUrl: `${base}/feed/all.xml` },
+        { "@type": "DataDownload", name: en ? "Daily RSS" : `${withSubject("日报")} RSS`, encodingFormat: "application/rss+xml", contentUrl: `${base}/feed/daily.xml` },
+        { "@type": "DataDownload", name: en ? "Weekly RSS" : `${withSubject("周报")} RSS`, encodingFormat: "application/rss+xml", contentUrl: `${base}/feed/weekly.xml` },
+        { "@type": "DataDownload", name: en ? "Monthly RSS" : `${withSubject("月报")} RSS`, encodingFormat: "application/rss+xml", contentUrl: `${base}/feed/monthly.xml` },
+        { "@type": "DataDownload", name: en ? "Public API v1" : "公开 API v1", encodingFormat: "application/json", contentUrl: `${base}/api/v1/items` },
         { "@type": "DataDownload", name: "OpenAPI", encodingFormat: "application/json", contentUrl: `${base}/openapi-v1.json` },
       ],
     },
@@ -181,7 +183,7 @@ export function itemListLd(path: string, name: string, titles: string[]) {
   return {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    name: `${SITE.name} · ${name}`,
+    name: `${new URLSearchParams(path.split("?")[1] ?? "").get("lang") === "en" ? SITE_EN.name : SITE.name} · ${name}`,
     url: `${siteUrl()}${path}`,
     numberOfItems: names.length,
     itemListElement: names.map((n, i) => ({ "@type": "ListItem", position: i + 1, name: n })),
@@ -202,7 +204,7 @@ export function articleLd(input: { path: string; headline: string; description?:
     url,
     headline: input.headline.slice(0, 110),
     ...(description ? { description: description.slice(0, 300) } : {}),
-    inLanguage: SITE.locale,
+    inLanguage: new URLSearchParams(input.path.split("?")[1] ?? "").get("lang") === "en" ? "en-US" : SITE.locale,
     ...(input.publishedAt ? { datePublished: input.publishedAt, dateModified: input.modifiedAt ?? input.publishedAt } : {}),
     ...(input.section?.length ? { articleSection: input.section } : {}),
     isAccessibleForFree: true,
@@ -230,9 +232,10 @@ const REPORT_NAME = { daily: "日报", weekly: "周报", monthly: "月报" } as 
 
 /** One report issue: an editorial round-up by the site (no personal byline), sections as its sections. */
 export function reportLd(r: ReportDetail, path: string, description: string) {
+  const en = new URLSearchParams(path.split("?")[1] ?? "").get("lang") === "en";
   return articleLd({
     path,
-    headline: `${SITE.name} ${REPORT_NAME[r.kind]} · ${r.key}`,
+    headline: `${en ? SITE_EN.name : SITE.name} ${en ? ({ daily: "Daily", weekly: "Weekly", monthly: "Monthly" } as const)[r.kind] : REPORT_NAME[r.kind]} · ${r.key}`,
     description,
     publishedAt: r.generatedAt,
     section: r.sections.map((s) => s.label),

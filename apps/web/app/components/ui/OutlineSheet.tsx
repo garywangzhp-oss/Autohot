@@ -2,6 +2,7 @@
 // is marked, and choosing one scrolls there.
 import { useEffect, useState } from "react";
 import { Sheet } from "./Sheet";
+import { useSiteLanguage } from "../../features/i18n/SiteLanguage";
 
 export interface OutlineEntry {
   id: string;
@@ -25,7 +26,8 @@ export function scrollToAnchor(id: string) {
   history.replaceState(history.state, "", `${location.pathname}${location.search}#${id}`);
 }
 
-export function OutlineSheet({ open, onClose, outline, title = "目录" }: { open: boolean; onClose: () => void; outline: OutlineEntry[]; title?: string }) {
+export function OutlineSheet({ open, onClose, outline, title }: { open: boolean; onClose: () => void; outline: OutlineEntry[]; title?: string }) {
+  const lang = useSiteLanguage();
   const [current, setCurrent] = useState<string | null>(null);
   useEffect(() => {
     if (!open) return;
@@ -40,7 +42,7 @@ export function OutlineSheet({ open, onClose, outline, title = "目录" }: { ope
   }, [open, outline]);
   let n = 0;
   return (
-    <Sheet open={open} onClose={onClose} title={title}>
+    <Sheet open={open} onClose={onClose} title={title ?? (lang === "en" ? "Contents" : "目录")}>
       <ol className="px-3">
         {outline.map((o) => {
           const top = o.level <= 2;
@@ -61,7 +63,7 @@ export function OutlineSheet({ open, onClose, outline, title = "目录" }: { ope
               >
                 {top && <span className={`mono w-5 shrink-0 text-[13px] ${on ? "font-bold" : "text-ink-4"}`}>{mark}</span>}
                 <span className={`min-w-0 flex-1 leading-[1.45] ${top ? "text-[15.5px]" : "text-[14px]"} ${on ? "font-semibold" : top ? "text-ink-2" : "text-ink-3"}`}>{o.text}</span>
-                {on ? <span className="shrink-0 text-[11.5px] font-semibold">正在读</span> : o.note && <span className="num shrink-0 text-[12px] text-ink-4">{o.note}</span>}
+                {on ? <span className="shrink-0 text-[11.5px] font-semibold">{lang === "en" ? "Reading" : "正在读"}</span> : o.note && <span className="num shrink-0 text-[12px] text-ink-4">{o.note}</span>}
               </a>
             </li>
           );

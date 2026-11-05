@@ -3,7 +3,7 @@ import { IntentLink } from "../components/ui/IntentLink";
 import { useLoaderData } from "react-router";
 import type { Route } from "./+types/about";
 import type { SiteContact, SiteStats } from "@aihot/contracts/site";
-import { ABOUT, ABOUT_EN, POLICY, REPORTS, SITE, subjectAfter } from "@aihot/site";
+import { ABOUT, ABOUT_EN, POLICY, REPORTS, SITE, SITE_EN, subjectAfter } from "@aihot/site";
 import { apiGet, edgeTtl, pageExpiresAt, requestLanguage, withLanguage } from "../lib/api.server";
 import { cachedLoader } from "../lib/page-reuse";
 import { organizationLd, pageMeta } from "../lib/seo";
@@ -34,7 +34,7 @@ export async function loader({ request }: { request: Request }) {
 
 export function meta({ location }: Route.MetaArgs) {
   const en = new URLSearchParams(location.search).get("lang") === "en";
-  return pageMeta({ title: en ? "About AutoHot" : "关于", rawTitle: en, description: en ? ABOUT_EN.description : ABOUT.description, path: en ? "/about?lang=en" : "/about", image: "/og/pages/about.png", jsonLd: organizationLd() });
+  return pageMeta({ title: en ? "About AutoHot" : "关于", rawTitle: en, description: en ? ABOUT_EN.description : ABOUT.description, path: en ? "/about?lang=en" : "/about", image: "/og/pages/about.png", jsonLd: organizationLd(en ? "en" : "zh") });
 }
 
 const NO_SOURCES: RiverSource[] = [];
@@ -57,12 +57,12 @@ function Figure({ n, unit }: { n: number; unit: string }) {
   );
 }
 
-const KIND_ORDER: Array<[string, string]> = [
-  ["x_search", "X"],
-  ["rss", "RSS"],
-  ["web_list", "网页"],
-  ["mp_account", "公众号"],
-  ["json_list", "接口"],
+const KIND_ORDER: Array<[string, string, string]> = [
+  ["x_search", "X", "X"],
+  ["rss", "RSS", "RSS"],
+  ["web_list", "网页", "Web"],
+  ["mp_account", "公众号", "WeChat"],
+  ["json_list", "接口", "JSON"],
 ];
 
 /**
@@ -85,7 +85,7 @@ interface Stage {
 }
 
 function stagesOf(stats: SiteStats | null, lang: "zh" | "en"): Stage[] {
-  const kinds = stats ? KIND_ORDER.filter(([k]) => stats.sourceKinds[k]).map(([k, label]) => `${label} ${stats.sourceKinds[k]}`).join(" · ") : null;
+  const kinds = stats ? KIND_ORDER.filter(([k]) => stats.sourceKinds[k]).map(([k, zh, en]) => `${lang === "en" ? en : zh} ${stats.sourceKinds[k]}`).join(" · ") : null;
   return [
     {
       no: "01",
@@ -120,15 +120,17 @@ function stagesOf(stats: SiteStats | null, lang: "zh" | "en"): Stage[] {
 
 /** The maker's round avatar before the greeting; it steps aside if the image fails. */
 function MakerFace({ src }: { src: string }) {
+  const en = useSiteLanguage() === "en";
   const [failed, setFailed] = useState(false);
   if (failed) return null;
-  return <img src={src} alt={`${ABOUT.maker?.name ?? ""}的头像`} width={48} height={48} onError={() => setFailed(true)} className="size-11 shrink-0 rounded-full bg-bg-sunk object-cover ring-1 ring-line xl:size-12" />;
+  return <img src={src} alt={en ? `${ABOUT.maker?.name ?? ""} avatar` : `${ABOUT.maker?.name ?? ""}的头像`} width={48} height={48} onError={() => setFailed(true)} className="size-11 shrink-0 rounded-full bg-bg-sunk object-cover ring-1 ring-line xl:size-12" />;
 }
 
 function QrCard({ src, kind, title, note }: { src: string; kind: string; title: string; note: string }) {
+  const en = useSiteLanguage() === "en";
   return (
     <figure className="card flex items-center gap-5 p-5">
-      <img src={src} alt={`${kind}二维码`} width={112} height={112} loading="lazy" className="size-[104px] shrink-0 rounded-tile border border-line bg-white object-contain p-1.5 sm:size-[112px]" />
+      <img src={src} alt={en ? `${kind} QR code` : `${kind}二维码`} width={112} height={112} loading="lazy" className="size-[104px] shrink-0 rounded-tile border border-line bg-white object-contain p-1.5 sm:size-[112px]" />
       <figcaption className="min-w-0">
         <div className="text-[12px] text-ink-4">{kind}</div>
         <div className="mt-1 text-[16px] font-semibold leading-snug text-ink">{title}</div>
@@ -143,6 +145,7 @@ function QrCard({ src, kind, title, note }: { src: string; kind: string; title: 
  * right. Without the contact settings (the api did not answer) the codes stay out, as the figures do.
  */
 function Maker({ maker, contact }: { maker: NonNullable<typeof ABOUT.maker>; contact: SiteContact | null }) {
+  const en = useSiteLanguage() === "en";
   const codes = [
     contact?.wechatQr && maker.wechat ? <QrCard key="wechat" src={contact.wechatQr} kind={maker.wechat.kind} title={maker.wechat.title} note={maker.wechat.note} /> : null,
     contact?.feishuQr && maker.feishu ? <QrCard key="feishu" src={contact.feishuQr} kind={maker.feishu.kind} title={maker.feishu.title} note={maker.feishu.note} /> : null,
@@ -150,11 +153,11 @@ function Maker({ maker, contact }: { maker: NonNullable<typeof ABOUT.maker>; con
   return (
     <section aria-labelledby="maker" className="mt-20 grid gap-10 xl:mt-28 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16">
       <div>
-        <Kicker>做这个站的人</Kicker>
+        <Kicker>{en ? "Who makes this site" : "做这个站的人"}</Kicker>
         <h2 id="maker" className="mt-4 flex items-center gap-3.5 text-[26px] font-black leading-[1.3] tracking-[-0.02em] text-ink xl:gap-4 xl:text-[34px]">
           {contact?.makerAvatar && <MakerFace src={contact.makerAvatar} />}
           <span>
-            嗨，我是 <span className="whitespace-nowrap text-accent">{maker.name}</span>
+            {en ? "Hi, I’m " : "嗨，我是 "}<span className="whitespace-nowrap text-accent">{maker.name}</span>
           </span>
         </h2>
         <div className="mt-5 space-y-4 text-[15.5px] leading-[1.9] text-ink-2 xl:text-[16.5px]">
@@ -162,21 +165,21 @@ function Maker({ maker, contact }: { maker: NonNullable<typeof ABOUT.maker>; con
             <p key={line}>{line}</p>
           ))}
           <p className="text-ink-3">
-            它一直在改，改了什么都写在
+            {en ? "It keeps changing. Every update is in the " : "它一直在改，改了什么都写在"}
             <Link viewTransition to="/changelog" className="text-accent hover:underline">
-              更新日志
+              {en ? "changelog" : "更新日志"}
             </Link>
-            里；有想法、遇到问题，去
+            {en ? ". Ideas or problems? Use the " : "里；有想法、遇到问题，去"}
             <Link viewTransition to="/feedback" className="text-accent hover:underline">
-              反馈页
+              {en ? "feedback page" : "反馈页"}
             </Link>
-            告诉我。
+            {en ? " to tell me." : "告诉我。"}
           </p>
         </div>
       </div>
       {codes.length > 0 && (
         <div className="grid content-start gap-3">
-          <h3 className="text-[15px] font-semibold text-ink">如果觉得有点用，欢迎加入</h3>
+          <h3 className="text-[15px] font-semibold text-ink">{en ? "If it is useful, come join in" : "如果觉得有点用，欢迎加入"}</h3>
           {codes}
         </div>
       )}
@@ -251,10 +254,10 @@ export default function AboutPage() {
         <h2 id="how" className="sr-only">
           {lang === "en" ? "How AutoHot works" : `${ABOUT.name} 怎么工作`}
         </h2>
-        <SignalRiver sources={sources} focus={focus} onArrive={onArrive} className="h-[230px] sm:h-[300px] lg:h-[360px] 2xl:h-[420px]">
+        <SignalRiver sources={sources} focus={focus} onArrive={onArrive} lang={lang} className="h-[230px] sm:h-[300px] lg:h-[360px] 2xl:h-[420px]">
           <Latest item={latest[at]} className="absolute left-[75%] top-[calc(42%+42px)] hidden w-[25%] px-6 lg:block" />
         </SignalRiver>
-        <p className="sr-only">{`示意图：每条线是一个信源；线汇成一束束，代表同一件事的多篇报道；经过精选的闸门，只有少数几束通过，${subjectAfter("汇入每天的", "日报")}。`}</p>
+        <p className="sr-only">{lang === "en" ? "Diagram: each line is a source; lines gather into bundles representing reports about the same event; only a few pass the selection gate and flow into the daily edition." : `示意图：每条线是一个信源；线汇成一束束，代表同一件事的多篇报道；经过精选的闸门，只有少数几束通过，${subjectAfter("汇入每天的", "日报")}。`}</p>
         <Latest item={latest[at]} className="mt-2 border-t border-line pt-4 lg:hidden" />
         <ol className="mt-4 grid grid-cols-1 border-t border-line-strong sm:grid-cols-2 lg:mt-0 lg:grid-cols-4">
           {stages.map((s, i) => (
@@ -279,7 +282,7 @@ export default function AboutPage() {
         </ol>
       </section>
 
-      {ABOUT.maker && <Maker maker={ABOUT.maker} contact={contact} />}
+      {(lang === "en" ? ABOUT_EN.maker : ABOUT.maker) && <Maker maker={(lang === "en" ? ABOUT_EN.maker : ABOUT.maker)!} contact={contact} />}
 
       <p className="mt-16 well rounded-card px-5 py-4 text-[13px] leading-[1.85] text-ink-3">
         {about.copyright[0]}
@@ -290,20 +293,20 @@ export default function AboutPage() {
       </p>
 
       <footer className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5 text-[12.5px] text-ink-4">
-        <span>{SITE.footerNote}</span>
-        <nav className="flex gap-5" aria-label="规则与隐私">
+        <span>{lang === "en" ? SITE_EN.footerNote : SITE.footerNote}</span>
+        <nav className="flex gap-5" aria-label={lang === "en" ? "Rules and privacy" : "规则与隐私"}>
           <Link
             viewTransition
             id={ABOUT.termsAnchor ?? undefined}
             to="/terms"
             className="transition-colors hover:text-accent"
           >
-            {POLICY.terms.name}
+            {lang === "en" ? POLICY.terms.nameEn : POLICY.terms.name}
           </Link>
           <Link viewTransition to="/privacy" className="transition-colors hover:text-accent">
-            隐私说明
+            {lang === "en" ? "Privacy" : "隐私说明"}
           </Link>
-          <PrivacySettingsButton className="transition-colors hover:text-accent">Cookie 设置</PrivacySettingsButton>
+          <PrivacySettingsButton className="transition-colors hover:text-accent">{lang === "en" ? "Cookie settings" : "Cookie 设置"}</PrivacySettingsButton>
         </nav>
       </footer>
     </div>

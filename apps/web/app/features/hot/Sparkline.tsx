@@ -1,11 +1,13 @@
 import { useId } from "react";
 import { areaPath, curvePath, observedRuns, type Pt } from "./curve";
+import { useSiteLanguage } from "../i18n/SiteLanguage";
 
 // The small 24-hour heat curve beside a hot-list entry, over a wash of its colour that fades to the
 // baseline, ending in a dot for now. Hours without a comparable snapshot break the curve rather than
 // being drawn as zero; with fewer than three observed hours nothing is drawn. The curve fills whatever
 // box the class gives it: strokes and the dot keep their size however the box stretches.
 export function Sparkline({ values, className = "h-6 w-[88px]" }: { values: Array<number | null>; className?: string }) {
+  const en = useSiteLanguage() === "en";
   // A plain id for url(#…); React’s generated ids carry punctuation.
   const id = `spark${useId().replace(/[^\w-]/g, "")}`;
   const W = 100;
@@ -21,7 +23,7 @@ export function Sparkline({ values, className = "h-6 w-[88px]" }: { values: Arra
   const dot = `M${end[0]} ${end[1]}h0`;
   const gaps = seen.length < values.length;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className={`overflow-visible text-accent ${className}`} role="img" aria-label={`近 24 小时热度走势${gaps ? "，部分时段缺少可比数据" : ""}`}>
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className={`overflow-visible text-accent ${className}`} role="img" aria-label={en ? `24-hour heat trend${gaps ? ", with some hours missing comparable data" : ""}` : `近 24 小时热度走势${gaps ? "，部分时段缺少可比数据" : ""}`}>
       <defs>
         <linearGradient id={id} x1="0" x2="0" y1="0" y2="1">
           <stop offset="0" stopColor="currentColor" stopOpacity="0.2" />

@@ -1,4 +1,4 @@
-import { POLICY, SITE } from "@aihot/site";
+import { POLICY, SITE, SITE_EN } from "@aihot/site";
 import type { Route } from "./+types/terms";
 import copy from "@aihot/site/pages/terms.md?raw";
 import copyEn from "@aihot/site/pages/terms.en.md?raw";
@@ -31,7 +31,7 @@ export default function TermsPage() {
     <CopyPage
       doc={copyDoc.doc}
       rendered={copyDoc.rendered}
-      eyebrow={SITE.name}
+      eyebrow={lang === "en" ? SITE_EN.name : SITE.name}
       footer={
         <LegalFooterLinks
           links={[

@@ -68,9 +68,10 @@ test('site cards omit unread payload while the detail retains its original body'
   assert.equal(card.title, `${T} needle`);
   assert.equal(card.summary, 'fixture summary');
   assert.deepEqual(card.source, { name: 'Performance fixture' });
-  for (const field of ['links', 'originalTitle', 'revision', 'discoveredAt', 'story']) {
+  for (const field of ['links', 'revision', 'discoveredAt', 'story']) {
     assert.ok(!(field in card), `site card does not serialize ${field}`);
   }
+  assert.equal(card.originalTitle, null, 'the English fallback field is present without adding list payload');
   const detail = (await app.inject({ method: 'GET', url: `/api/site/items/${id(1)}` })).json();
   assert.equal(detail.links.original, `https://example.org/${T}/1`);
   assert.ok(detail.body.original?.includes('licensed body'), 'the detail retains licensed original text');

@@ -75,14 +75,14 @@ const TOPIC_GROUPS_EN: Record<string, TopicGroup> = {
 const TOPIC_NAMES_EN: Record<string, string> = {
   tesla: "Tesla", toyota: "Toyota", volkswagen: "Volkswagen", gm: "General Motors", ford: "Ford", stellantis: "Stellantis",
   hyundai: "Hyundai", byd: "BYD", mercedes: "Mercedes-Benz", bmw: "BMW", honda: "Honda", nissan: "Nissan", xiaomi: "Xiaomi EV",
-  nio: "NIO", xpeng: "XPeng", li: "Li Auto", catl: "CATL", volvo: "Volvo", rivian: "Rivian", waymo: "Waymo",
+  nio: "NIO", xpeng: "XPeng", "li-auto": "Li Auto", li: "Li Auto", catl: "CATL", volvo: "Volvo", rivian: "Rivian", waymo: "Waymo",
   "new-energy": "New energy", battery: "Battery technology", charging: "Charging & infrastructure", cockpit: "Smart cockpits",
-  chips: "Automotive chips", platform: "Platforms & architectures", safety: "Safety & recalls", hydrogen: "Hydrogen & fuel cells",
-  commercial: "Commercial vehicles", robotaxi: "Robotaxi", globalization: "Global expansion", capacity: "Capacity & factories",
-  launch: "New models", sales: "Sales & market", electrification: "Electrification", autonomous: "Autonomous driving",
+  chips: "Automotive chips", chip: "Automotive chips", platform: "Platforms & architectures", safety: "Safety & recalls", hydrogen: "Hydrogen & fuel cells",
+  commercial: "Commercial vehicles", robotaxi: "Robotaxi", globalization: "Global expansion", export: "Global expansion", capacity: "Capacity & factories",
+  launch: "New models", "new-models": "New models", sales: "Sales & market", electrification: "Electrification", autonomous: "Autonomous driving",
   technology: "Technology & software", "supply-chain": "Supply chain", manufacturing: "Manufacturing", companies: "Companies & executives",
   industry: "Industry trends", policy: "Policy & regulation", finance: "Finance & capital", energy: "Energy & charging",
-  mobility: "Mobility", motorsport: "Motorsport", review: "Reviews", opinion: "Opinion",
+  mobility: "Mobility", motorsport: "Motorsport", review: "Reviews", reviews: "Reviews & tests", opinion: "Opinion", opinions: "Analysis & opinion",
 };
 
 function topicName(topic: Topic, lang: SiteLanguage): string {

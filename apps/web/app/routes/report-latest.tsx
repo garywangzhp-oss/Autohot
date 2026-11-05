@@ -39,7 +39,7 @@ export function meta({ loaderData, location }: Route.MetaArgs) {
     image: `/og/pages/${kind}.png`,
     // The latest issue, described at this page's own address (its canonical).
     jsonLd: report ? reportLd(report, location.pathname, report.lead?.leadParagraph ?? description) : undefined,
-  }), feedLink(kind)];
+  }), feedLink(kind, en ? "en" : "zh")];
 }
 
 export function headers() {
@@ -50,7 +50,7 @@ export default function ReportLatestPage() {
   const { kind, report, index, today } = useLoaderData<typeof loader>();
   const en = useSiteLanguage() === "en";
   return (
-    <ReportLayout kind={kind} index={index} current={report?.key ?? null} today={today} outline={report ? reportOutline(report) : []}>
+    <ReportLayout kind={kind} index={index} current={report?.key ?? null} today={today} outline={report ? reportOutline(report, en ? "en" : "zh") : []}>
       {report ? <ReportPaper report={report} index={index} editionAction={report.kind === "daily" ? REPORT_PARTS.map(({ name, part: Subscribe }) => <Subscribe key={name} kind={report.kind} />) : undefined} /> : <EmptyState title={en ? `No ${kindLabel(kind, "en").toLowerCase()} issue yet` : subjectAfter("还没有发布", KIND_LABEL[kind])}>{en ? "The first issue will appear here." : "第一期发布后会出现在这里。"}</EmptyState>}
     </ReportLayout>
   );

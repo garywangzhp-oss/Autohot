@@ -49,11 +49,11 @@ function partsOf(data: TopicPage): Part[] {
 }
 
 /** The search snippet: what the topic covers, after when it last changed and its biggest recent events. */
-function description(data: TopicPage, parts: Part[]): string {
+function description(data: TopicPage, parts: Part[], lang: "zh" | "en" = "zh"): string {
   const { topic } = data;
   let text = topic.definition;
-  const news = parts.flatMap((p) => p.news(p.data)).slice(0, 2).map((title) => title.replace(/[。.]$/u, "")).join("；");
-  if (news && topic.latest) text = `${monthDay(beijingDate(topic.latest.at))}更新：${news}。${topic.definition}`;
+  const news = parts.flatMap((p) => p.news(p.data)).slice(0, 2).map((title) => title.replace(/[。.]$/u, "")).join(lang === "en" ? "; " : "；");
+  if (news && topic.latest) text = lang === "en" ? `Updated ${monthDay(beijingDate(topic.latest.at), "en")}: ${news}. ${topic.definition}` : `${monthDay(beijingDate(topic.latest.at))}更新：${news}。${topic.definition}`;
   return text.length > 150 ? `${text.slice(0, 149)}…` : text;
 }
 
@@ -65,7 +65,7 @@ export function meta({ loaderData, location }: Route.MetaArgs) {
   const parts = partsOf(data);
   const basePath = page > 1 ? `/topics/${topic.slug}/page/${page}` : `/topics/${topic.slug}`;
   const path = en ? `${basePath}?lang=en` : basePath;
-  const text = en ? (page > 1 ? `${topic.name} selected archive, page ${page}. ${topic.definition}` : topic.definition) : (page > 1 ? `${topic.name}的精选归档第 ${page} 页。${topic.definition}` : description(data, parts));
+  const text = en ? (page > 1 ? `${topic.name} selected archive, page ${page}. ${topic.definition}` : description(data, parts, "en")) : (page > 1 ? `${topic.name}的精选归档第 ${page} 页。${topic.definition}` : description(data, parts));
   const crumbs = breadcrumbLd([{ name: en ? "AutoHot" : SITE.name, path: "/" }, { name: en ? "Topics" : "主题", path: en ? "/topics?lang=en" : "/topics" }, { name: topic.name, path }]);
   return pageMeta({
     title: page > 1
@@ -81,7 +81,7 @@ export function meta({ loaderData, location }: Route.MetaArgs) {
       : [
           topicLd({
             path,
-            name: `${topic.name} 最新动态`,
+            name: en ? `${topic.name}: latest stories` : `${topic.name} 最新动态`,
             description: text,
             dateModified: topic.latest?.at ?? null,
             lists: parts.map((p) => ({ name: p.name, entries: p.entries(p.data) })),
@@ -118,7 +118,7 @@ export default function TopicRoute() {
           <p className="mt-1.5 text-pretty text-[13.5px] leading-relaxed text-ink-3">{topic.definition}</p>
           <p className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[12.5px] text-ink-4">
             <span>
-              <span className="num font-semibold text-ink-2">{topic.total.toLocaleString("zh-CN")}</span>{` ${REPORTS.metricUnits.selectedCount}`}
+              <span className="num font-semibold text-ink-2">{topic.total.toLocaleString(en ? "en-US" : "zh-CN")}</span>{` ${en ? "featured stories" : REPORTS.metricUnits.selectedCount}`}
             </span>
             <span>
               {en ? "Past 30 days " : "近 30 天 "}<span className="num font-semibold text-ink-2">{topic.recent.toLocaleString(en ? "en-US" : "zh-CN")}</span>{en ? " stories" : " 条"}
@@ -131,7 +131,7 @@ export default function TopicRoute() {
         <div className="flex items-center gap-4 text-[12px] text-ink-4">
           {topic.latest && (
             <span>
-              <time dateTime={topic.latest.at} className="num">{monthDayTime(topic.latest.at)}</time> 更新
+              <time dateTime={topic.latest.at} className="num">{monthDayTime(topic.latest.at, en ? "en" : "zh")}</time> {en ? "updated" : "更新"}
             </span>
           )}
         </div>
@@ -143,13 +143,13 @@ export default function TopicRoute() {
         </div>
       ))}
 
-      <h2 className="sr-only">{page === 1 ? `${topic.name}的精选` : `精选归档 · 第 ${page} 页`}</h2>
+      <h2 className="sr-only">{page === 1 ? (en ? `${topic.name} selections` : `${topic.name}的精选`) : (en ? `Selection archive · Page ${page}` : `精选归档 · 第 ${page} 页`)}</h2>
       {items.length === 0 ? (
         <div className="lg:card">
           <EmptyState title={en ? "No selected stories under this topic yet" : "这个主题暂时还没有精选内容"} />
         </div>
       ) : (
-        <DayList items={items} headerAside={<span className="num whitespace-nowrap">第 {first}–{last} 条<span className="hidden sm:inline"> · 共 {topic.total.toLocaleString("zh-CN")} 条</span></span>} />
+        <DayList items={items} headerAside={<span className="num whitespace-nowrap">{en ? `${first}–${last}` : `第 ${first}–${last} 条`}<span className="hidden sm:inline"> · {en ? `${topic.total.toLocaleString("en-US")} total` : `共 ${topic.total.toLocaleString("zh-CN")} 条`}</span></span>} />
       )}
       <Pagination page={page} pageCount={pageCount} href={href} />
     </div>

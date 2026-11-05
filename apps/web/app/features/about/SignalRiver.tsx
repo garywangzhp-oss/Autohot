@@ -9,6 +9,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { withSubject } from "@aihot/site";
 import { EDITION } from "../report/format";
+import type { SiteLanguage } from "@aihot/contracts/site";
 
 export interface RiverSource {
   name: string;
@@ -21,6 +22,7 @@ export const STAGES = [0, 0.25, 0.5, 0.75, 1] as const;
 
 const STEP = 3;
 const KIND: Record<string, string> = { x_search: "X 账号", rss: "RSS", web_list: "网页", mp_account: "公众号", json_list: "接口" };
+const KIND_EN: Record<string, string> = { x_search: "X account", rss: "RSS", web_list: "Website", mp_account: "WeChat account", json_list: "JSON feed" };
 const FLASH_MS = 900;
 const INTRO_MS = 1800;
 /** Slow in, slow out: the river starts gently, crosses, and settles. */
@@ -281,12 +283,14 @@ export function SignalRiver({
   sources,
   focus,
   onArrive,
+  lang = "zh",
   className = "",
   children,
 }: {
   sources: RiverSource[];
   focus: number | null;
   onArrive?: () => void;
+  lang?: SiteLanguage;
   className?: string;
   children?: ReactNode;
 }) {
@@ -482,7 +486,7 @@ export function SignalRiver({
       const p = L.paper;
       if (x >= p.x - 8 && x <= p.x + p.w + 8 && y >= p.y - 8 && y <= p.y + p.h + 8) {
         hover = { s: null, bundle: null, paper: true };
-        place(x, y, withSubject("日报"), EDITION.daily);
+        place(x, y, lang === "en" ? "Daily edition" : withSubject("日报"), lang === "en" ? "Published daily at 08:00" : EDITION.daily);
         redraw();
         return;
       }
@@ -505,13 +509,13 @@ export function SignalRiver({
       const b = L.bundles[s.bundle]!;
       if (x < L.x2) {
         hover = { s: best, bundle: null, paper: false };
-        const kind = s.source ? (KIND[s.source.kind] ?? "信源") : "信源";
-        place(x, y, s.source ? s.source.name : "一个信源", s.source?.heatOnly ? `${kind} · 只计入热度` : kind);
+        const kind = s.source ? ((lang === "en" ? KIND_EN : KIND)[s.source.kind] ?? (lang === "en" ? "Source" : "信源")) : (lang === "en" ? "Source" : "信源");
+        place(x, y, s.source ? s.source.name : (lang === "en" ? "A source" : "一个信源"), s.source?.heatOnly ? (lang === "en" ? `${kind} · heat only` : `${kind} · 只计入热度`) : kind);
       } else {
         hover = { s: null, bundle: s.bundle, paper: false };
-        if (x < L.gate) place(x, y, "同一件事", `${b.n} 个来源的报道合成一条`);
-        else if (b.kept) place(x, y, "进了精选", "有信息量，分数也够");
-        else place(x, y, "没进精选", "信息不够、重复或只是营销");
+        if (x < L.gate) place(x, y, lang === "en" ? "One event" : "同一件事", lang === "en" ? `${b.n} source reports grouped` : `${b.n} 个来源的报道合成一条`);
+        else if (b.kept) place(x, y, lang === "en" ? "Featured" : "进了精选", lang === "en" ? "Substantive enough and above the threshold" : "有信息量，分数也够");
+        else place(x, y, lang === "en" ? "Not featured" : "没进精选", lang === "en" ? "Too thin, repetitive or promotional" : "信息不够、重复或只是营销");
       }
       redraw();
     };
@@ -564,7 +568,7 @@ export function SignalRiver({
       wrap.removeEventListener("pointermove", onMove);
       wrap.removeEventListener("pointerleave", onLeave);
     };
-  }, [sources]);
+  }, [sources, lang]);
 
   return (
     <div ref={wrapRef} className={`relative ${className}`}>

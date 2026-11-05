@@ -34,7 +34,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
   const english = loaderData?.lang === "en";
   const titles = loaderData?.data.cards.map((c) => c.item.title) ?? [];
   const localizedPath = english ? `${path}${path.includes("?") ? "&" : "?"}lang=en` : path;
-  return pageMeta({ title: english ? SITE_EN.homeTitle : undefined, rawTitle: english, path: localizedPath, description: english ? SITE_EN.description : undefined, jsonLd: path === "/" ? [...siteLd(), itemListLd(localizedPath, english ? "Featured" : "精选", titles)] : undefined });
+  return pageMeta({ title: english ? SITE_EN.homeTitle : undefined, rawTitle: english, path: localizedPath, description: english ? SITE_EN.description : undefined, jsonLd: path === "/" ? [...siteLd(english ? "en" : "zh"), itemListLd(localizedPath, english ? "Featured" : "精选", titles)] : undefined });
 }
 
 export function headers({ loaderHeaders }: Route.HeadersArgs) {

@@ -1,5 +1,5 @@
 import { useLoaderData } from "react-router";
-import { SITE, subjectAfter, withSubject } from "@aihot/site";
+import { SITE, SITE_EN, subjectAfter, withSubject } from "@aihot/site";
 import type { Route } from "./+types/topics";
 import type { TopicSummary, TopicsResponse } from "@aihot/contracts/site";
 import { apiGet, edgeTtl, pageExpiresAt, requestLanguage, withLanguage } from "../lib/api.server";
@@ -25,9 +25,9 @@ export function meta({ loaderData, location }: Route.MetaArgs) {
   const en = new URLSearchParams(location.search).get("lang") === "en";
   if (!loaderData) return pageMeta({ title: en ? "Automotive topics" : SITE.topicsTitle, path: en ? "/topics?lang=en" : "/topics", image: "/og/pages/topics.png" });
   const { groups, topics } = loaderData;
-  const by = groups.map((g) => g.name).join("、");
+  const by = groups.map((g) => g.name).join(en ? ", " : "、");
   const indexed = topics.filter((t) => t.indexable);
-  const named = indexed.slice(0, 6).map((t) => t.name.split(" / ")[0]).join("、");
+  const named = indexed.slice(0, 6).map((t) => t.name.split(" / ")[0]).join(en ? ", " : "、");
   const base = siteUrl();
   return pageMeta({
     title: en ? "Automotive topics · AutoHot" : SITE.topicsTitle,
@@ -39,18 +39,18 @@ export function meta({ loaderData, location }: Route.MetaArgs) {
       {
         "@context": "https://schema.org",
         "@type": "CollectionPage",
-        "@id": `${base}/topics#collection`,
-        url: `${base}/topics`,
-        name: withSubject("主题"),
-        inLanguage: SITE.locale,
+        "@id": `${base}${en ? "/topics?lang=en" : "/topics"}#collection`,
+        url: `${base}${en ? "/topics?lang=en" : "/topics"}`,
+        name: en ? "Automotive topics · AutoHot" : withSubject("主题"),
+        inLanguage: en ? "en-US" : SITE.locale,
         isPartOf: { "@id": `${base}/#website` },
         mainEntity: {
           "@type": "ItemList",
           numberOfItems: indexed.length,
-          itemListElement: indexed.map((t, i) => ({ "@type": "ListItem", position: i + 1, name: t.name, url: `${base}/topics/${t.slug}` })),
+          itemListElement: indexed.map((t, i) => ({ "@type": "ListItem", position: i + 1, name: t.name, url: `${base}/topics/${t.slug}${en ? "?lang=en" : ""}` })),
         },
       },
-      breadcrumbLd([{ name: SITE.name, path: "/" }, { name: "主题", path: "/topics" }]),
+      breadcrumbLd([{ name: en ? SITE_EN.name : SITE.name, path: en ? "/?lang=en" : "/" }, { name: en ? "Topics" : "主题", path: en ? "/topics?lang=en" : "/topics" }]),
     ],
   });
 }
@@ -86,7 +86,7 @@ function TopicCard({ t }: { t: TopicSummary }) {
           {t.latest?.title ?? t.definition}
         </span>
         <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11.5px] text-ink-4 lg:mt-3 lg:justify-between">
-          {t.latest && <time dateTime={t.latest.at} suppressHydrationWarning>{relativeTime(t.latest.at)}</time>}
+          {t.latest && <time dateTime={t.latest.at} suppressHydrationWarning>{relativeTime(t.latest.at, Date.now(), en ? "en" : "zh")}</time>}
           <span>
             {t.recent > 0 ? (
               <>

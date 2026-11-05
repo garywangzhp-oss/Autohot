@@ -67,13 +67,14 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (che
 }
 
 function PreferenceRow({ title, detail, checked, onChange, disabled = false }: { title: string; detail: string; checked: boolean; onChange?: (checked: boolean) => void; disabled?: boolean }) {
+  const en = useSiteLanguage() === "en";
   return (
     <div className="flex gap-3 border-t border-line-soft py-3 first:border-t-0 first:pt-0 last:pb-0">
       <div className="min-w-0 flex-1">
         <p className="text-[13.5px] font-semibold text-ink">{title}</p>
         <p className="mt-0.5 text-[12px] leading-relaxed text-ink-4">{detail}</p>
       </div>
-      {disabled ? <span className="shrink-0 pt-0.5 text-[12px] text-ink-4">始终启用</span> : <Toggle checked={checked} onChange={onChange!} label={title} />}
+      {disabled ? <span className="shrink-0 pt-0.5 text-[12px] text-ink-4">{en ? "Always on" : "始终启用"}</span> : <Toggle checked={checked} onChange={onChange!} label={title} />}
     </div>
   );
 }

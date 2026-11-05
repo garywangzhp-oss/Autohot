@@ -1,7 +1,7 @@
 import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData, useLocation, useNavigation, useRouteError, useRouteLoaderData, type ShouldRevalidateFunction } from "react-router";
 import { LocalizedLink as Link } from "./features/i18n/SiteLanguage.tsx";
 import type { SiteMeta } from "@aihot/contracts/site";
-import { SITE } from "@aihot/site";
+import { SITE, SITE_EN } from "@aihot/site";
 import { RingMark } from "@aihot/site/brand/Logo.tsx";
 import { useEffect, useState, type ReactNode } from "react";
 import type { Route } from "./+types/root";
@@ -12,7 +12,7 @@ import { PullToRefresh } from "./components/shell/PullToRefresh";
 import { usePageTransition } from "./components/shell/transitions";
 import { SearchOverlay } from "./features/search/SearchOverlay";
 import { PrivacyConsent } from "./features/analytics/PrivacyConsent";
-import { SiteLanguageProvider } from "./features/i18n/SiteLanguage";
+import { SiteLanguageProvider, useSiteLanguage } from "./features/i18n/SiteLanguage";
 import { BackToTop, NavigationProgress } from "./components/shell/Chrome";
 import { buttonClass } from "./components/ui/Controls";
 import { rememberPage, THEME_BOOT_SCRIPT, useThemeSync } from "./lib/local-state";
@@ -79,14 +79,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 /** Only a page nobody matched falls back to this; every page names itself. */
-export function meta({ error }: Route.MetaArgs) {
+export function meta({ error, location }: Route.MetaArgs) {
   if (!error) return [];
   const notFound = isRouteErrorResponse(error) && error.status === 404;
-  return [{ title: titled(notFound ? "页面不存在" : "暂时无法加载") }, { name: "robots", content: "noindex" }];
+  const en = new URLSearchParams(location.search).get("lang") === "en";
+  const title = notFound ? (en ? "Page not found" : "页面不存在") : (en ? "Temporarily unavailable" : "暂时无法加载");
+  return [{ title: en ? `${title} · ${SITE_EN.name}` : titled(title) }, { name: "robots", content: "noindex" }];
 }
 
 /** Sidebar, main column and phone tab bar around a page (or an error). */
 function SiteShell({ changelogVersion, children }: { changelogVersion: string | null; children: ReactNode }) {
+  const lang = useSiteLanguage();
   const navigation = useNavigation();
   // The phone search and pull-to-refresh are client-side, mounted once the page is interactive.
   const [interactive, setInteractive] = useState(false);
@@ -95,7 +98,7 @@ function SiteShell({ changelogVersion, children }: { changelogVersion: string | 
     <div className="flex min-h-dvh">
       <NavigationProgress active={navigation.state === "loading"} />
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[70] focus:rounded-control focus:bg-surface focus:px-3 focus:py-2">
-        跳到正文
+        {lang === "en" ? "Skip to content" : "跳到正文"}
       </a>
       <Sidebar changelogVersion={changelogVersion} />
       {/* Phone shell (≤ 960px): each page's top bar (PhoneBar), one centred column, the tab bar below.
@@ -141,6 +144,8 @@ export default function App() {
 
 export function ErrorBoundary() {
   useThemeSync();
+  const lang = useSiteLanguage();
+  const en = lang === "en";
   const error = useRouteError();
   const site = useRouteLoaderData<typeof loader>("root");
   const { pathname, search, hash } = useLocation();
@@ -151,19 +156,19 @@ export function ErrorBoundary() {
       <div className="max-w-sm text-center">
         <RingMark className="mx-auto mb-5 size-10 text-accent" />
         <div className="mono text-[12px] text-ink-4">{status}</div>
-        <h1 className="mt-1.5 text-[20px] font-bold text-ink">{notFound ? "这里没有内容" : "暂时无法加载"}</h1>
+        <h1 className="mt-1.5 text-[20px] font-bold text-ink">{notFound ? (en ? "Nothing here" : "这里没有内容") : (en ? "Temporarily unavailable" : "暂时无法加载")}</h1>
         <p className="mt-2 text-[13.5px] leading-relaxed text-ink-3">
-          {notFound ? "你访问的页面不存在，或内容已不再公开。" : "页面暂时无法显示，请重新加载后再试。"}
+          {notFound ? (en ? "The page does not exist or is no longer public." : "你访问的页面不存在，或内容已不再公开。") : (en ? "The page cannot be shown right now. Reload and try again." : "页面暂时无法显示，请重新加载后再试。")}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2.5">
           {!notFound && <Link reloadDocument to={pathname + search + hash} className={buttonClass("primary")}>
-            重新加载
+            {en ? "Reload" : "重新加载"}
           </Link>}
           <Link reloadDocument to="/" className={buttonClass(notFound ? "primary" : "secondary")}>
-            回到精选
+            {en ? "Back to Featured" : "回到精选"}
           </Link>
           <Link reloadDocument to="/all" className={buttonClass("secondary")}>
-            浏览全部动态
+            {en ? "Browse all stories" : "浏览全部动态"}
           </Link>
         </div>
       </div>

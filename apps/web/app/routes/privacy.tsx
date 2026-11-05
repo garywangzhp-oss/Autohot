@@ -1,4 +1,4 @@
-import { POLICY, SITE } from "@aihot/site";
+import { POLICY, SITE, SITE_EN } from "@aihot/site";
 import type { Route } from "./+types/privacy";
 import copy from "@aihot/site/pages/privacy.md?raw";
 import copyEn from "@aihot/site/pages/privacy.en.md?raw";
@@ -31,7 +31,7 @@ export default function PrivacyPage() {
     <CopyPage
       doc={copyDoc.doc}
       rendered={copyDoc.rendered}
-      eyebrow={SITE.name}
+      eyebrow={lang === "en" ? SITE_EN.name : SITE.name}
       footer={
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <LegalFooterLinks links={[{ to: "/terms", label: lang === "en" ? POLICY.terms.nameEn : POLICY.terms.name }, { to: "/feedback", label: lang === "en" ? "Feedback" : "反馈页" }]} note={lang === "en" ? `Privacy ${copyDoc.doc.meta["Version"] ?? ""} · ${copyDoc.doc.meta["Effective date"] ?? ""}` : `隐私说明 ${copyDoc.doc.meta["版本"] ?? ""} · ${copyDoc.doc.meta["生效日期"] ?? ""}`} />

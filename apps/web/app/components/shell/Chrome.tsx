@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { IconArrowUp } from "../icons";
+import { useSiteLanguage } from "../../features/i18n/SiteLanguage";
 
 /** A thin accent line while a navigation is in flight (shown only if it takes a moment). */
 export function NavigationProgress({ active }: { active: boolean }) {
@@ -31,6 +32,7 @@ export function NavigationProgress({ active }: { active: boolean }) {
 
 /** Round "back to top" button once the reader has scrolled a screen or so (desktop; on phones the tab bar does it). */
 export function BackToTop() {
+  const lang = useSiteLanguage();
   const [shown, setShown] = useState(false);
   useEffect(() => {
     const onScroll = () => setShown(window.scrollY > window.innerHeight * 1.2);
@@ -41,7 +43,7 @@ export function BackToTop() {
   return (
     <button
       type="button"
-      aria-label="回到顶部"
+      aria-label={lang === "en" ? "Back to top" : "回到顶部"}
       onClick={() => window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })}
       className={`fixed bottom-6 right-6 z-30 hidden size-11 items-center justify-center rounded-full border border-line bg-surface text-ink-2 shadow-[var(--shadow-soft)] transition-all duration-200 hover:text-ink lg:flex ${
         shown ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0"

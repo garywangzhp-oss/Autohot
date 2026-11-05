@@ -12,6 +12,8 @@ import { IconChevronRight } from "../components/icons";
 import { Inline, dateHeading } from "../features/changelog/text";
 import { PhoneBar } from "../components/shell/PhoneBar";
 import type { Screen } from "../components/shell/screens";
+import { useSiteLanguage } from "../features/i18n/SiteLanguage";
+import type { Route } from "./+types/changelog";
 
 export const handle: Screen = { tab: "me", name: "更新日志" };
 export { shouldRevalidate } from "../lib/page-reuse";
@@ -27,8 +29,9 @@ export async function loader({ request }: { request: Request }) {
   return { ...await apiGet<ChangelogResponse>("/api/site/changelog", { signal: request.signal }), expiresAt: pageExpiresAt(300) };
 }
 
-export function meta() {
-  return pageMeta({ title: "更新日志", description: `${SITE.name} 的功能更新、优化、公告与下线记录。`, path: "/changelog", image: "/og/pages/changelog.png" });
+export function meta({ location }: Route.MetaArgs) {
+  const en = new URLSearchParams(location.search).get("lang") === "en";
+  return pageMeta({ title: en ? "Changelog · AutoHot" : "更新日志", rawTitle: en, description: en ? "Feature updates, improvements, announcements and retired features from AutoHot." : `${SITE.name} 的功能更新、优化、公告与下线记录。`, path: en ? "/changelog?lang=en" : "/changelog", image: "/og/pages/changelog.png" });
 }
 
 const KIND_DOT: Record<Release["kind"], string> = {
@@ -39,6 +42,7 @@ const KIND_DOT: Record<Release["kind"], string> = {
 };
 
 const KINDS = Object.keys(KIND_DOT) as Release["kind"][];
+const KIND_EN: Record<Release["kind"], NonNullable<Release["kindEn"]>> = { 更新: "Update", 优化: "Improvement", 公告: "Announcement", 下线: "Retired" };
 
 function ReleaseBody({ lines }: { lines: string[] }) {
   const blocks: Array<string | string[]> = [];
@@ -71,7 +75,8 @@ function ReleaseBody({ lines }: { lines: string[] }) {
 
 /** One date's releases in a card; `id` is the jump target of the month index. */
 function Day({ date, releases, id }: { date: string; releases: Release[]; id?: string }) {
-  const h = dateHeading(date);
+  const en = useSiteLanguage() === "en";
+  const h = dateHeading(date, en ? "en" : "zh");
   return (
     <section id={id} className="card scroll-mt-[calc(var(--bar-h)+1.5rem)] px-5 lg:px-7">
       <h2 className="flex items-baseline gap-3 border-b border-line-soft py-4">
@@ -90,13 +95,13 @@ function Day({ date, releases, id }: { date: string; releases: Release[]; id?: s
               <span className="mono block text-[12.5px] text-ink-3">{r.time}</span>
               <span className="inline-flex items-center gap-1.5 text-[11.5px] text-ink-4 sm:mt-1.5">
                 <span className={`size-1.5 rounded-full ${r.urgent ? "bg-hot" : KIND_DOT[r.kind]}`} aria-hidden="true" />
-                {r.kind}
+                {en ? (r.kindEn ?? KIND_EN[r.kind]) : r.kind}
               </span>
             </div>
             <article className={`min-w-0 sm:border-l sm:pl-8 ${r.urgent ? "sm:border-hot/40" : "sm:border-line"}`}>
-              {r.urgent && <span className="mb-2 inline-flex rounded-full bg-hot px-2.5 py-0.5 text-[12px] font-semibold text-white">重要</span>}
-              <h3 className={`text-[15px] font-bold leading-snug ${r.urgent ? "text-hot" : "text-ink"}`}>{r.title}</h3>
-              <ReleaseBody lines={r.body} />
+              {r.urgent && <span className="mb-2 inline-flex rounded-full bg-hot px-2.5 py-0.5 text-[12px] font-semibold text-white">{en ? "Important" : "重要"}</span>}
+              <h3 className={`text-[15px] font-bold leading-snug ${r.urgent ? "text-hot" : "text-ink"}`}>{en ? (r.titleEn ?? r.title) : r.title}</h3>
+              <ReleaseBody lines={en ? (r.bodyEn ?? r.body) : r.body} />
             </article>
           </li>
         ))}
@@ -130,6 +135,8 @@ function FeatureDay({ date, releases, Drawing }: { date: string; releases: Relea
 }
 
 export default function ChangelogPage() {
+  const lang = useSiteLanguage();
+  const en = lang === "en";
   const data = useLoaderData<typeof loader>();
   useEffect(() => setChangelogSeen(data.latestVersion), [data.latestVersion]);
   const [kind, setKind] = useState<Release["kind"] | null>(null);
@@ -145,7 +152,7 @@ export default function ChangelogPage() {
 
   const aside = (
     <>
-      <AsideCard title="按类型看" className="hidden lg:block">
+      <AsideCard title={en ? "Filter by type" : "按类型看"} className="hidden lg:block">
         <div className="-mx-2 -mb-1">
           {[null, ...KINDS].map((k) => (
             <button
@@ -156,28 +163,28 @@ export default function ChangelogPage() {
               className={`flex w-full items-center gap-2.5 rounded-control px-2 py-2 text-left text-[13.5px] transition-colors ${kind === k ? "bg-bg-sunk font-medium text-ink dark:bg-bg-muted/60" : "text-ink-2 hover:bg-bg-sunk hover:text-ink"}`}
             >
               <span className={`size-1.5 rounded-full ${k ? KIND_DOT[k] : "bg-ink-2"}`} aria-hidden="true" />
-              <span className="flex-1">{k ?? "全部"}</span>
+              <span className="flex-1">{k ? (en ? (data.releases.find((r) => r.kind === k)?.kindEn ?? KIND_EN[k]) : k) : (en ? "All" : "全部")}</span>
               <span className="num text-[12px] text-ink-4">{k ? data.releases.filter((r) => r.kind === k).length : data.releases.length}</span>
             </button>
           ))}
         </div>
       </AsideCard>
-      <AsideCard title="按月份" className="hidden lg:block">
-        <nav aria-label="按月份" className="-mx-2 -mb-1">
+      <AsideCard title={en ? "By month" : "按月份"} className="hidden lg:block">
+        <nav aria-label={en ? "By month" : "按月份"} className="-mx-2 -mb-1">
           {[...months.entries()].map(([month, m]) => {
             const [y, mo] = month.split("-").map(Number) as [number, number];
             return (
               <a key={month} href={`#d-${m.first}`} className="flex items-center justify-between rounded-control px-2 py-2 text-[13.5px] text-ink-2 transition-colors hover:bg-bg-sunk hover:text-ink">
-                {y} 年 {mo} 月<span className="num text-[12px] text-ink-4">{m.count} 条</span>
+                {en ? new Intl.DateTimeFormat("en-US", { timeZone: "UTC", year: "numeric", month: "long" }).format(new Date(Date.UTC(y, mo - 1, 1))) : `${y} 年 ${mo} 月`}<span className="num text-[12px] text-ink-4">{m.count} {en ? "updates" : "条"}</span>
               </a>
             );
           })}
         </nav>
       </AsideCard>
-      <AsideCard title="有想法或遇到问题">
-        <p className="text-[13px] leading-[1.75] text-ink-3">想要的功能、用着不顺的地方，都可以在反馈页告诉我们。</p>
+      <AsideCard title={en ? "Ideas or problems" : "有想法或遇到问题"}>
+        <p className="text-[13px] leading-[1.75] text-ink-3">{en ? "Tell us about features you want or anything that is not working well on the feedback page." : "想要的功能、用着不顺的地方，都可以在反馈页告诉我们。"}</p>
         <IntentLink viewTransition to="/feedback" className="mt-3 inline-flex items-center gap-1 text-[13px] font-medium text-accent hover:underline">
-          去反馈 <IconChevronRight size={14} />
+          {en ? "Send feedback" : "去反馈"} <IconChevronRight size={14} />
         </IntentLink>
       </AsideCard>
     </>
@@ -185,11 +192,11 @@ export default function ChangelogPage() {
 
   return (
     <>
-    <PhoneBar back={{ to: "/more", label: "我的" }} title="更新日志" />
+    <PhoneBar back={{ to: "/more", label: en ? "Me" : "我的" }} title={en ? "Changelog" : "更新日志"} />
     <ReadingLayout aside={aside}>
       <header className="pb-6">
-        <h1 data-page-title="" className="text-[24px] font-semibold leading-[1.3] text-ink">更新日志</h1>
-        <p className="mt-1.5 text-[13px] text-ink-3">新功能、调整、下线，都写在这里。</p>
+        <h1 data-page-title="" className="text-[24px] font-semibold leading-[1.3] text-ink">{en ? "Changelog" : "更新日志"}</h1>
+        <p className="mt-1.5 text-[13px] text-ink-3">{en ? "New features, improvements and retired features are recorded here." : "新功能、调整、下线，都写在这里。"}</p>
       </header>
       <div className="space-y-4">
         {[...groups.entries()].map(([date, releases]) => {

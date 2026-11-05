@@ -12,6 +12,8 @@ import { AsideCard, ReadingLayout } from "../components/ui/Page";
 import { PhoneBar } from "../components/shell/PhoneBar";
 import type { Screen } from "../components/shell/screens";
 import { webModules } from "../site-modules";
+import { useSiteLanguage } from "../features/i18n/SiteLanguage";
+import type { Route } from "./+types/feedback";
 
 export const handle: Screen = { tab: "me", name: "反馈" };
 
@@ -19,8 +21,9 @@ export function headers() {
   return edgeTtl(300);
 }
 
-export function meta() {
-  return pageMeta({ title: "反馈", description: `告诉 ${SITE.name} 哪里可以做得更好：内容、功能、接入或来源方的更正与下架请求。`, path: "/feedback", image: "/og/pages/feedback.png", noindex: true });
+export function meta({ location }: Route.MetaArgs) {
+  const en = new URLSearchParams(location.search).get("lang") === "en";
+  return pageMeta({ title: en ? "Feedback · AutoHot" : "反馈", rawTitle: en, description: en ? "Tell AutoHot what could be better: content, features, integrations, corrections or removal requests from publishers." : `告诉 ${SITE.name} 哪里可以做得更好：内容、功能、接入或来源方的更正与下架请求。`, path: en ? "/feedback?lang=en" : "/feedback", image: "/og/pages/feedback.png", noindex: true });
 }
 
 interface Draft {
@@ -52,14 +55,18 @@ function writeDraft(d: Draft | null): boolean {
   return saved;
 }
 
-const TIPS = ["出问题的页面或文章链接", "你看到了什么，原本想做什么", "有截图更好，记得先遮盖敏感信息"];
+const TIPS = {
+  zh: ["出问题的页面或文章链接", "你看到了什么，原本想做什么", "有截图更好，记得先遮盖敏感信息"],
+  en: ["The page or article link where the problem occurred", "What you saw and what you expected to do", "A screenshot helps, but cover any sensitive information first"],
+};
 
 function FeedbackAside() {
+  const en = useSiteLanguage() === "en";
   return (
     <>
-      <AsideCard title="写清楚这几点，处理更快">
+      <AsideCard title={en ? "Include these details for a faster response" : "写清楚这几点，处理更快"}>
         <ol className="space-y-2.5">
-          {TIPS.map((t, i) => (
+          {(en ? TIPS.en : TIPS.zh).map((t, i) => (
             <li key={t} className="flex gap-2.5 text-[13px] leading-[1.6] text-ink-3">
               <span className="mono mt-px text-[11px] font-bold text-accent">{String(i + 1).padStart(2, "0")}</span>
               {t}
@@ -67,8 +74,8 @@ function FeedbackAside() {
           ))}
         </ol>
       </AsideCard>
-      <AsideCard title="来源方">
-        <p className="text-[13px] leading-[1.75] text-ink-3">如果你是来源方，希望更正、下架或调整展示方式，写明对应的文章链接和你的诉求即可。</p>
+      <AsideCard title={en ? "Publishers" : "来源方"}>
+        <p className="text-[13px] leading-[1.75] text-ink-3">{en ? "If you are a publisher and want a correction, removal or presentation change, include the article link and what you need changed." : "如果你是来源方，希望更正、下架或调整展示方式，写明对应的文章链接和你的诉求即可。"}</p>
       </AsideCard>
     </>
   );
@@ -92,6 +99,7 @@ const MAX_IMAGE = 5 * 1024 * 1024;
 const MAX_TEXT = 2000;
 
 export default function FeedbackPage() {
+  const en = useSiteLanguage() === "en";
   const [params] = useSearchParams();
   const [draft, setDraft] = useState<Draft>({ content: "", email: "", pageUrl: params.get("from") ?? "" });
   const [shot, setShot] = useState<{ file: File; url: string } | null>(null);
@@ -121,9 +129,9 @@ export default function FeedbackPage() {
   const pick = (picked: File | null | undefined) => {
     if (!picked) return;
     const type = screenshotType(picked);
-    if (!/^image\/(png|jpeg|webp)$/.test(type)) return setState({ kind: "error", message: "截图需要是 PNG、JPEG 或 WebP。" });
+    if (!/^image\/(png|jpeg|webp)$/.test(type)) return setState({ kind: "error", message: en ? "Screenshots must be PNG, JPEG or WebP." : "截图需要是 PNG、JPEG 或 WebP。" });
     const file = type === picked.type ? picked : new File([picked], picked.name, { type });
-    if (file.size > MAX_IMAGE) return setState({ kind: "error", message: "截图原图不超过 5 MB。" });
+    if (file.size > MAX_IMAGE) return setState({ kind: "error", message: en ? "The screenshot must be 5 MB or smaller." : "截图原图不超过 5 MB。" });
     setShot({ file, url: URL.createObjectURL(file) });
     setState({ kind: "idle" });
   };
@@ -139,7 +147,7 @@ export default function FeedbackPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (draft.content.trim().length < 2) return setState({ kind: "error", message: "请写下反馈内容。" });
+    if (draft.content.trim().length < 2) return setState({ kind: "error", message: en ? "Please write your feedback." : "请写下反馈内容。" });
     setState({ kind: "sending" });
     try {
       const form = new FormData();
@@ -149,13 +157,13 @@ export default function FeedbackPage() {
       if (shot) form.set("screenshot", shot.file);
       const res = await fetch("/api/site/feedback", { method: "POST", body: form });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) return setState({ kind: "error", message: body.detail ?? "提交失败，请稍后再试。" });
+      if (!res.ok) return setState({ kind: "error", message: en ? "Submission failed. Please try again shortly." : (body.detail ?? "提交失败，请稍后再试。") });
       writeDraft(null);
       setState({ kind: "done", id: body.id });
       setDraft({ content: "", email: "", pageUrl: "" });
       setShot(null);
     } catch {
-      setState({ kind: "error", message: "网络不太顺，草稿已保存在本机，稍后再提交。" });
+      setState({ kind: "error", message: en ? "The network is unavailable. Your draft is saved in this browser; try again later." : "网络不太顺，草稿已保存在本机，稍后再提交。" });
     }
   };
 
@@ -166,12 +174,12 @@ export default function FeedbackPage() {
           <div className="anim-pop-in mx-auto flex size-14 items-center justify-center rounded-full bg-accent text-accent-contrast">
             <IconCheck size={26} />
           </div>
-          <h1 className="mt-6 text-[22px] font-semibold text-ink">收到了，谢谢你</h1>
+          <h1 className="mt-6 text-[22px] font-semibold text-ink">{en ? "Received. Thank you." : "收到了，谢谢你"}</h1>
           <p className="mt-2 text-[14px] text-ink-3">
-            反馈编号 <span className="mono font-semibold text-ink">#{state.id}</span>，需要回复时我们会引用这个编号。
+            {en ? <>Feedback reference <span className="mono font-semibold text-ink">#{state.id}</span>. We will quote this number if we reply.</> : <>反馈编号 <span className="mono font-semibold text-ink">#{state.id}</span>，需要回复时我们会引用这个编号。</>}
           </p>
           <Link to="/" className="mt-8 inline-flex h-10 items-center rounded-full bg-ink px-6 text-[14px] font-medium text-bg transition-opacity hover:opacity-90">
-            回到精选
+            {en ? "Back to Featured" : "回到精选"}
           </Link>
         </div>
       </ReadingLayout>
@@ -183,11 +191,11 @@ export default function FeedbackPage() {
   const canSend = draft.content.trim().length >= 2 && state.kind !== "sending";
   return (
     <>
-    <PhoneBar back={{ to: "/more", label: "我的" }} title="意见反馈" />
+    <PhoneBar back={{ to: "/more", label: en ? "Me" : "我的" }} title={en ? "Feedback" : "意见反馈"} />
     <ReadingLayout aside={<FeedbackAside />}>
       <header>
-        <h1 data-page-title="" className="text-[24px] font-semibold leading-[1.3] text-ink">说说你的想法</h1>
-        <p className="mt-2 text-[14.5px] leading-relaxed text-ink-3">{SITE.feedbackLead}</p>
+        <h1 data-page-title="" className="text-[24px] font-semibold leading-[1.3] text-ink">{en ? "Tell us what you think" : "说说你的想法"}</h1>
+        <p className="mt-2 text-[14.5px] leading-relaxed text-ink-3">{en ? "Bugs, feature requests, integrations or anything that does not feel right: tell us about it." : SITE.feedbackLead}</p>
       </header>
 
       <form
@@ -209,7 +217,7 @@ export default function FeedbackPage() {
         <div className="space-y-5 p-5 sm:p-6">
           <div>
             <label htmlFor="fb-content" className={label}>
-              想说点什么？
+              {en ? "What would you like to tell us?" : "想说点什么？"}
             </label>
             <div className="relative">
               <textarea
@@ -219,7 +227,7 @@ export default function FeedbackPage() {
                 maxLength={MAX_TEXT}
                 value={draft.content}
                 onChange={(e) => setDraft({ ...draft, content: e.target.value })}
-                placeholder={SITE.feedbackExample}
+                placeholder={en ? "For example: I would like to filter by brand or model, or add a source I follow…" : SITE.feedbackExample}
                 className={`${field} block resize-y px-4 pb-8 pt-3.5 text-[14.5px] leading-relaxed`}
               />
               <span className="mono pointer-events-none absolute bottom-3 right-4 text-[11px] text-ink-4">
@@ -230,23 +238,23 @@ export default function FeedbackPage() {
 
           <div>
             <label htmlFor="fb-email" className={label}>
-              邮箱 <span className="font-normal text-ink-4">（选填）</span>
+              {en ? "Email" : "邮箱"} <span className="font-normal text-ink-4">{en ? "(optional)" : "（选填）"}</span>
             </label>
-            <input id="fb-email" type="email" value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} placeholder={SITE.feedbackEmailHint} className={`${field} h-11 px-4 text-[14.5px]`} />
+            <input id="fb-email" type="email" value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} placeholder={en ? "Leave an email if you would like a reply" : SITE.feedbackEmailHint} className={`${field} h-11 px-4 text-[14.5px]`} />
           </div>
 
           <div>
             <span className={label}>
-              截图 <span className="font-normal text-ink-4">（选填）</span>
+              {en ? "Screenshot" : "截图"} <span className="font-normal text-ink-4">{en ? "(optional)" : "（选填）"}</span>
             </span>
             {shot ? (
               <div className="flex items-center gap-4 well rounded-card p-3">
-                <img src={shot.url} alt="截图预览" className="h-16 w-24 shrink-0 rounded-control border border-line bg-surface object-cover" />
+                <img src={shot.url} alt={en ? "Screenshot preview" : "截图预览"} className="h-16 w-24 shrink-0 rounded-control border border-line bg-surface object-cover" />
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[13px] font-medium text-ink-2">{shot.file.name}</div>
                   <div className="mono mt-0.5 text-[11.5px] text-ink-4">{(shot.file.size / 1024 / 1024).toFixed(2)} MB</div>
                 </div>
-                <button type="button" aria-label="移除截图" onClick={() => setShot(null)} className="grid size-8 shrink-0 place-items-center rounded-full text-ink-4 transition-colors hover:bg-surface hover:text-ink">
+                <button type="button" aria-label={en ? "Remove screenshot" : "移除截图"} onClick={() => setShot(null)} className="grid size-8 shrink-0 place-items-center rounded-full text-ink-4 transition-colors hover:bg-surface hover:text-ink">
                   <IconClose size={15} />
                 </button>
               </div>
@@ -260,8 +268,8 @@ export default function FeedbackPage() {
                   <IconImage size={19} />
                 </span>
                 <span className="min-w-0">
-                  <span className="block text-[13.5px] font-semibold text-ink-2">添加一张问题截图</span>
-                  <span className="mt-0.5 block text-[12px] leading-relaxed text-ink-4">粘贴或拖到这里也可以 · 请先遮盖敏感信息；PNG、JPEG 或 WebP，原图不超过 5 MB</span>
+                  <span className="block text-[13.5px] font-semibold text-ink-2">{en ? "Add a screenshot" : "添加一张问题截图"}</span>
+                  <span className="mt-0.5 block text-[12px] leading-relaxed text-ink-4">{en ? "Paste or drag it here. Cover sensitive information first. PNG, JPEG or WebP, up to 5 MB." : "粘贴或拖到这里也可以 · 请先遮盖敏感信息；PNG、JPEG 或 WebP，原图不超过 5 MB"}</span>
                 </span>
               </button>
             )}
@@ -277,11 +285,11 @@ export default function FeedbackPage() {
 
         <div className="flex flex-col-reverse gap-4 border-t border-line-soft bg-bg-sunk/50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:bg-bg-muted/30">
           <p className="text-[12px] leading-relaxed text-ink-4 sm:max-w-[400px]">
-            请勿提交密钥、身份证件或与问题无关的敏感信息。提交即表示你知悉反馈内容、选填邮箱、页面信息和截图将按
+            {en ? "Do not submit passwords, identity documents or sensitive information unrelated to the problem. By submitting, you acknowledge that your feedback, optional email, page information and screenshot will be handled under the " : "请勿提交密钥、身份证件或与问题无关的敏感信息。提交即表示你知悉反馈内容、选填邮箱、页面信息和截图将按"}
             <Link viewTransition to="/privacy" className="text-accent hover:underline">
-              隐私说明
+              {en ? "privacy notice" : "隐私说明"}
             </Link>
-            处理。
+            {en ? "." : "处理。"}
           </p>
           <button
             type="submit"
@@ -289,7 +297,7 @@ export default function FeedbackPage() {
             className="inline-flex h-10 shrink-0 items-center justify-center gap-2 self-start rounded-full bg-accent px-6 text-[14px] font-medium text-accent-contrast transition-[background-color,opacity] hover:bg-accent-ink disabled:bg-line-strong disabled:text-ink-4 sm:self-auto"
           >
             {state.kind === "sending" && <RingMark className="size-4" spinning />}
-            发送反馈
+            {en ? "Send feedback" : "发送反馈"}
           </button>
         </div>
       </form>

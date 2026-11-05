@@ -1,6 +1,6 @@
 // Item detail and Markdown export, both behind the same visibility and licence rules.
 import type { OutlineEntry, SiteItemDetail, SiteLanguage, StoryRef } from "@aihot/contracts/site";
-import { ITEM_COPY, SITE } from "@aihot/site";
+import { ITEM_COPY, ITEM_COPY_EN, SITE, SITE_EN } from "@aihot/site";
 import { bodyToMarkdown } from "../content/markdown.ts";
 import { sql } from "../db.ts";
 import { proxyBodyImages } from "../media/imgproxy.ts";
@@ -193,26 +193,33 @@ export function markdownAvailable(row: {
   return !!row.summary || (showsPost(row) && !!row.x_post?.text) || (row.body_mode === "full" && !!row.body_html);
 }
 
-export async function exportMarkdown(id: string): Promise<{ filename: string; body: string } | null> {
+export async function exportMarkdown(id: string, lang: SiteLanguage = "zh"): Promise<{ filename: string; body: string } | null> {
   const row = await loadRow(id);
   if (!row || !markdownAvailable(row)) return null;
+  const en = lang === "en";
+  const summaryRow = toItemSummary(row, lang);
   const lines: string[] = [];
-  lines.push(`# ${row.title}`, "");
-  if (row.original_title) lines.push(`> 原标题：${row.original_title}`, "");
-  lines.push(`- 来源：${publicSourceName(row.source_name)}`);
+  lines.push(`# ${summaryRow.title}`, "");
+  if (row.original_title) lines.push(`> ${en ? "Original title" : "原标题"}：${row.original_title}`, "");
+  lines.push(`- ${en ? "Source" : "来源"}：${publicSourceName(row.source_name)}`);
   // Without a reliable date from the original, the time it was collected says so.
-  lines.push(row.published_at ? `- 发布时间：${row.published_at.toISOString()}` : `- 收录时间：${row.discovered_at.toISOString()}`);
-  lines.push(`- ${SITE.name}：${itemUrl(row.id)}`);
-  lines.push(`- 原文：${row.url}`, "");
-  if (row.summary) lines.push("## 摘要", "", row.summary, "");
-  if (row.selected && row.seat && row.reason) lines.push(`## ${ITEM_COPY.reasonLabel}`, "", row.reason, "");
+  lines.push(row.published_at ? `- ${en ? "Published" : "发布时间"}：${row.published_at.toISOString()}` : `- ${en ? "Collected" : "收录时间"}：${row.discovered_at.toISOString()}`);
+  lines.push(`- ${en ? SITE_EN.name : SITE.name}：${itemUrl(row.id)}${en ? "?lang=en" : ""}`);
+  lines.push(`- ${en ? "Original" : "原文"}：${row.url}`, "");
+  if (summaryRow.summary) lines.push(`## ${en ? "Summary" : "摘要"}`, "", summaryRow.summary, "");
+  if (row.selected && row.seat && summaryRow.reason) lines.push(`## ${en ? ITEM_COPY_EN.reasonLabel : ITEM_COPY.reasonLabel}`, "", summaryRow.reason, "");
   if (showsPost(row) && row.x_post?.text) {
-    lines.push("## 正文", "", String(row.x_post.text), "");
-    if (row.zh_text) lines.push("## 中文译文", "", row.zh_text, "");
+    lines.push(`## ${en ? "Post" : "正文"}`, "", String(en ? row.en_body_text ?? row.x_post.text : row.x_post.text), "");
+    if (row.zh_text && !en) lines.push("## 中文译文", "", row.zh_text, "");
     const q = row.x_post.quoted as { handle?: string; text?: string; url?: string } | null | undefined;
     if (q?.text) lines.push(`## 引用 @${q.handle ?? ""}`, "", ...String(q.text).split("\n").map((l) => `> ${l}`), "", ...(q.url ? [q.url, ""] : []));
-    if (q?.text && row.quoted_zh) lines.push("### 引用中文译文", "", ...row.quoted_zh.split("\n").map((l) => `> ${l}`), "");
+    if (q?.text && row.quoted_zh && !en) lines.push("### 引用中文译文", "", ...row.quoted_zh.split("\n").map((l) => `> ${l}`), "");
   } else if (row.body_mode === "full" && row.body_html) {
+    if (en) {
+      if (row.en_body_html) lines.push("## Article text · English", "", bodyToMarkdown(row.en_body_html, row.url), "");
+      else lines.push(isChineseBody(row) ? "## Article text · Chinese" : "## Article text · Original language", "", bodyToMarkdown(row.body_html, row.url), "");
+      return { filename: `${SITE.mcpPrefix}-${row.id}.md`, body: lines.join("\n").replace(/\n{3,}/g, "\n\n") };
+    }
     const translation = exportTranslation(row);
     if (translation) lines.push("## 正文 · 中文译文", "", bodyToMarkdown(translation, row.url), "");
     lines.push(isChineseBody(row) ? "## 正文" : "## 正文 · 原文", "", bodyToMarkdown(row.body_html, row.url), "");

@@ -90,6 +90,7 @@ export const SITE_EN = {
   description: "A global automotive news briefing: we follow trusted sources, group reports about the same event, and publish a concise daily edition.",
   tagline: "The automotive stories that matter, worldwide",
   keywords: ["automotive news", "car industry", "electric vehicles", "autonomous driving", "auto news"],
+  footerNote: "Powered by the AIHOT open-source framework",
 } as const;
 
 /** 使用规则和隐私说明两页（正文在 pages/ 里）。 */
@@ -133,6 +134,12 @@ export const ITEM_COPY = {
   /** 读者在网页和分享图上看不看得到 AI 评分。只管显示：公开 API 和 MCP 的数据照样带 score，后台照常显示。 */
   showScore: true,
 };
+
+/** English wording for the same item-level labels. */
+export const ITEM_COPY_EN = {
+  reasonLabel: "Why it matters",
+  showScore: ITEM_COPY.showScore,
+} as const;
 
 /** 关于页的一张二维码卡片。 */
 interface ContactCard {

@@ -225,7 +225,7 @@ export function registerSite(app: FastifyInstance) {
   app.get("/items/:id/markdown", siteHandler(async (req, reply) => {
     const id = (req.params as { id: string }).id;
     if (!/^[a-zA-Z0-9_-]{1,80}$/.test(id)) return reply.code(404).type("text/plain; charset=utf-8").send("Not found");
-    const md = await exportMarkdown(id);
+    const md = await exportMarkdown(id, requestLang(looseQuery(req)));
     if (!md) return reply.code(404).header("Cache-Control", "public, max-age=60").type("text/plain; charset=utf-8").send("Not found");
     return reply
       .header("Content-Type", "text/markdown; charset=utf-8")

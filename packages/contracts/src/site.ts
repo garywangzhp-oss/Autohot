@@ -355,6 +355,10 @@ export interface ChangelogRelease {
   kind: "更新" | "优化" | "公告" | "下线";
   title: string;
   body: string[];
+  /** English release note; the Chinese fields remain the source of truth. */
+  kindEn?: "Update" | "Improvement" | "Announcement" | "Retired";
+  titleEn?: string;
+  bodyEn?: string[];
   /** A notice readers must act on: drawn in the warning red so it cannot be skimmed past. */
   urgent?: true;
   /** A major release's long form, drawn by the site's own drawing when it ships one; its shape is the site's. */

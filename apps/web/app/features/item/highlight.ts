@@ -19,12 +19,12 @@ const LABELS: Record<string, string> = {
 for (const [name, language] of Object.entries({ bash, css, javascript, json, markdown, python, sql, typescript, xml, yaml })) hljs.registerLanguage(name, language);
 
 /** Coloured HTML (escaped text and hljs spans only) and a language label, or null when unsure. */
-export function highlightCode(source: string): { html: string; label: string } | null {
+export function highlightCode(source: string, lang: "zh" | "en" = "zh"): { html: string; label: string } | null {
   const text = source.replace(/\r\n?/g, "\n");
   const length = text.trim().length;
   if (length < 40 || length > 12_000) return null;
   const result = hljs.highlightAuto(text, Object.keys(LABELS));
   if (!result.language || result.relevance < 4) return null;
   const clear = result.relevance >= 6 && result.relevance - (result.secondBest?.relevance ?? 0) >= 2;
-  return { html: result.value, label: clear ? (LABELS[result.language] ?? "代码") : "代码" };
+  return { html: result.value, label: clear ? (LABELS[result.language] ?? (lang === "en" ? "Code" : "代码")) : (lang === "en" ? "Code" : "代码") };
 }

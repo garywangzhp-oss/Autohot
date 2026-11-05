@@ -4,11 +4,13 @@ import { useEffect, useState, type FormEvent } from "react";
 import type { ReportKind } from "@aihot/contracts/site";
 import { defineWebModule } from "@aihot/web/modules";
 import { Sheet } from "@aihot/web/components/ui/Sheet";
+import { useSiteLanguage } from "@aihot/web/features/i18n/SiteLanguage";
 
 type SubscribeSource = "home" | "daily";
 type SaveState = { kind: "idle" } | { kind: "sending" } | { kind: "success"; already: boolean } | { kind: "error"; message: string };
 
 function SubscribeDialog({ open, onClose, source }: { open: boolean; onClose: () => void; source: SubscribeSource }) {
+  const en = useSiteLanguage() === "en";
   const [email, setEmail] = useState("");
   const [state, setState] = useState<SaveState>({ kind: "idle" });
 
@@ -31,23 +33,23 @@ function SubscribeDialog({ open, onClose, source }: { open: boolean; onClose: ()
       });
       const data = (await response.json().catch(() => ({}))) as { ok?: boolean; already?: boolean; message?: string };
       if (!response.ok || !data.ok) {
-        setState({ kind: "error", message: data.message ?? "提交失败，请稍后再试。" });
+        setState({ kind: "error", message: en ? "Submission failed. Please try again shortly." : (data.message ?? "提交失败，请稍后再试。") });
         return;
       }
       setState({ kind: "success", already: !!data.already });
       setEmail("");
     } catch {
-      setState({ kind: "error", message: "提交失败，请稍后再试。" });
+      setState({ kind: "error", message: en ? "Submission failed. Please try again shortly." : "提交失败，请稍后再试。" });
     }
   }
 
   return (
-    <Sheet open={open} onClose={onClose} centered title="订阅汽车热点简报">
+    <Sheet open={open} onClose={onClose} centered title={en ? "Subscribe to the automotive briefing" : "订阅汽车热点简报"}>
       <div className="px-5 pb-5 sm:px-6">
-        <p className="text-[14px] font-semibold text-accent">新用户可免费体验一个月</p>
-        <p className="mt-2 text-[13px] leading-relaxed text-ink-3">留下邮箱，接收全球汽车行业精选、日报和重要动态。</p>
+        <p className="text-[14px] font-semibold text-accent">{en ? "Free updates for new subscribers" : "新用户可免费体验一个月"}</p>
+        <p className="mt-2 text-[13px] leading-relaxed text-ink-3">{en ? "Leave your email to receive featured global automotive stories, daily editions and important updates." : "留下邮箱，接收全球汽车行业精选、日报和重要动态。"}</p>
         <form className="mt-5 flex flex-col gap-2" onSubmit={submit}>
-          <label className="sr-only" htmlFor={`subscribe-email-${source}`}>邮箱</label>
+          <label className="sr-only" htmlFor={`subscribe-email-${source}`}>{en ? "Email" : "邮箱"}</label>
           <input
             id={`subscribe-email-${source}`}
             type="email"
@@ -55,7 +57,7 @@ function SubscribeDialog({ open, onClose, source }: { open: boolean; onClose: ()
             required
             value={email}
             onChange={(event) => { setEmail(event.target.value); if (state.kind === "error") setState({ kind: "idle" }); }}
-            placeholder="你的邮箱"
+            placeholder={en ? "Your email" : "你的邮箱"}
             className="h-11 min-w-0 rounded-full border border-line-strong bg-surface px-4 text-[14px] text-ink outline-none transition-colors placeholder:text-ink-4 focus:border-accent"
           />
           <button
@@ -63,16 +65,16 @@ function SubscribeDialog({ open, onClose, source }: { open: boolean; onClose: ()
             disabled={state.kind === "sending"}
             className="h-11 rounded-full bg-accent px-6 text-[14px] font-medium text-accent-contrast transition-colors hover:bg-accent-ink disabled:opacity-60"
           >
-            {state.kind === "sending" ? "提交中…" : "免费订阅"}
+            {state.kind === "sending" ? (en ? "Submitting…" : "提交中…") : (en ? "Subscribe" : "免费订阅")}
           </button>
         </form>
         {state.kind === "success" && (
           <p className="mt-2 text-[12.5px] text-accent">
-            {state.already ? "这个邮箱已经在订阅列表中。" : "订阅成功，邮箱已记录。"}
+            {state.already ? (en ? "This email is already subscribed." : "这个邮箱已经在订阅列表中。") : (en ? "Subscribed. Your email has been saved." : "订阅成功，邮箱已记录。")}
           </p>
         )}
         {state.kind === "error" && <p className="mt-2 text-[12.5px] text-hot">{state.message}</p>}
-        <p className="mt-2 text-[12px] text-ink-4">我们只用于发送订阅内容。</p>
+        <p className="mt-2 text-[12px] text-ink-4">{en ? "We use it only to send the updates you requested." : "我们只用于发送订阅内容。"}</p>
       </div>
     </Sheet>
   );
@@ -89,12 +91,14 @@ function SubscribeButton({ source, label, className }: { source: SubscribeSource
 }
 
 function HomeSubscribe() {
-  return <SubscribeButton source="home" label="免费订阅" className="self-end rounded-full border border-accent/35 bg-accent-soft px-3.5 py-1.5 text-[12.5px] font-medium text-accent transition-colors hover:bg-accent-softer" />;
+  const en = useSiteLanguage() === "en";
+  return <SubscribeButton source="home" label={en ? "Subscribe" : "免费订阅"} className="self-end rounded-full border border-accent/35 bg-accent-soft px-3.5 py-1.5 text-[12.5px] font-medium text-accent transition-colors hover:bg-accent-softer" />;
 }
 
 function ReportSubscribe({ kind }: { kind: ReportKind }) {
+  const en = useSiteLanguage() === "en";
   if (kind !== "daily") return null;
-  return <SubscribeButton source="daily" label="订阅" className="rounded-full border border-accent/35 bg-accent-soft px-2.5 py-0.5 text-[11px] font-medium text-accent transition-colors hover:bg-accent-softer" />;
+  return <SubscribeButton source="daily" label={en ? "Subscribe" : "订阅"} className="rounded-full border border-accent/35 bg-accent-soft px-2.5 py-0.5 text-[11px] font-medium text-accent transition-colors hover:bg-accent-softer" />;
 }
 
 export const emailSubscribe = defineWebModule({

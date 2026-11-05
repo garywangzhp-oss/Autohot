@@ -43,7 +43,7 @@ export function SiteLanguageToggle({ className = "" }: { className?: string }) {
       type="button"
       onClick={switchLanguage}
       className={`inline-flex h-8 shrink-0 items-center justify-center rounded-full border border-line-strong bg-surface px-3 text-[12px] font-semibold text-ink-2 transition-colors hover:border-accent hover:text-accent ${className}`}
-      aria-label={lang === "en" ? "切换到中文" : "Switch to English"}
+      aria-label={lang === "en" ? "Switch to Chinese" : "切换到英文"}
     >
       {lang === "en" ? "中文" : "EN"}
     </button>

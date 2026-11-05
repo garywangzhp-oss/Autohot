@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { HOT_FACE_LIMIT, type HotParticipant } from "@aihot/contracts/site";
 import { SourceAvatar } from "../../components/ui/SourceAvatar";
+import { useSiteLanguage } from "../i18n/SiteLanguage";
 
 /**
  * Who is talking about a hot story: overlapping faces of the 精选组 sources in the order the server
@@ -10,9 +11,10 @@ import { SourceAvatar } from "../../components/ui/SourceAvatar";
  * keyboards reach it too.
  */
 export function Faces({ participants, total, size = 24, interactive = true }: { participants: HotParticipant[]; total: number; size?: number; interactive?: boolean }) {
+  const lang = useSiteLanguage();
   const shown = participants.filter((p) => p.kind === "editorial").slice(0, HOT_FACE_LIMIT);
   const rest = total - shown.length;
-  const names = participants.map((p) => p.name).join("、");
+  const names = participants.map((p) => p.name).join(lang === "en" ? ", " : "、");
   const faces = (
     <>
       {shown.map((p, i) => (
@@ -38,6 +40,7 @@ export function Faces({ participants, total, size = 24, interactive = true }: { 
 }
 
 function FacesButton({ participants, total, names, children }: { participants: HotParticipant[]; total: number; names: string; children: React.ReactNode }) {
+  const lang = useSiteLanguage();
   // Where the list opens: under the faces, kept on screen; fixed, so a card's clipping never hides it.
   const [at, setAt] = useState<{ top: number; left: number } | null>(null);
   const open = at !== null;
@@ -72,7 +75,7 @@ function FacesButton({ participants, total, names, children }: { participants: H
         title={names}
         aria-expanded={open}
         aria-controls={id}
-        aria-label={`${total} 位参与者，查看名单`}
+        aria-label={lang === "en" ? `${total} participants, view list` : `${total} 位参与者，查看名单`}
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -86,20 +89,20 @@ function FacesButton({ participants, total, names, children }: { participants: H
         {children}
       </button>
       {open && createPortal(
-        <span ref={popup} id={id} role="dialog" aria-label="参与讨论的来源" style={at} className="fixed z-50 max-h-[240px] w-[240px] overflow-y-auto rounded-control border border-line bg-raised p-3 text-[12.5px] leading-relaxed text-ink-2 shadow-[var(--shadow-pop)]">
+        <span ref={popup} id={id} role="dialog" aria-label={lang === "en" ? "Participants" : "参与讨论的来源"} style={at} className="fixed z-50 max-h-[240px] w-[240px] overflow-y-auto rounded-control border border-line bg-raised p-3 text-[12.5px] leading-relaxed text-ink-2 shadow-[var(--shadow-pop)]">
           {editorial.length > 0 && (
             <>
-              <span className="block text-[11.5px] font-semibold text-ink-4">精选组</span>
-              <span className="mt-0.5 block">{editorial.map((p) => p.name).join("、")}</span>
+              <span className="block text-[11.5px] font-semibold text-ink-4">{lang === "en" ? "Selected sources" : "精选组"}</span>
+              <span className="mt-0.5 block">{editorial.map((p) => p.name).join(lang === "en" ? ", " : "、")}</span>
             </>
           )}
           {signal.length > 0 && (
             <>
-              <span className={`block text-[11.5px] font-semibold text-ink-4 ${editorial.length ? "mt-2" : ""}`}>氛围组</span>
-              <span className="mt-0.5 block">{signal.map((p) => p.name).join("、")}</span>
+              <span className={`block text-[11.5px] font-semibold text-ink-4 ${editorial.length ? "mt-2" : ""}`}>{lang === "en" ? "Discussion sources" : "氛围组"}</span>
+              <span className="mt-0.5 block">{signal.map((p) => p.name).join(lang === "en" ? ", " : "、")}</span>
             </>
           )}
-          {more > 0 && <span className="mt-2 block text-[11.5px] text-ink-4">另有 {more} 位未列出</span>}
+          {more > 0 && <span className="mt-2 block text-[11.5px] text-ink-4">{lang === "en" ? `${more} more not listed` : `另有 ${more} 位未列出`}</span>}
         </span>, document.body
       )}
     </span>

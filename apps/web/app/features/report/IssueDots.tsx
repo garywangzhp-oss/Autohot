@@ -15,10 +15,10 @@ const INTRO_MS = 700;
 const easeOutBack = (p: number) => 1 + 2.2 * (p - 1) ** 3 + 1.2 * (p - 1) ** 2;
 
 export function IssueDots({ kind, reportKey, issueNumber, index, className = "" }: { kind: ReportKind; reportKey: string; issueNumber: number; index: ReportNavigationEntry[]; className?: string }) {
-  const grid = useMemo(() => periodGrid(kind, reportKey, index, issueNumber), [kind, reportKey, index, issueNumber]);
+  const lang = useSiteLanguage();
+  const grid = useMemo(() => periodGrid(kind, reportKey, index, issueNumber, lang), [kind, reportKey, index, issueNumber, lang]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const navigate = useNavigate();
-  const lang = useSiteLanguage();
   const rows = Math.ceil(grid.cells.length / grid.columns);
 
   useEffect(() => {

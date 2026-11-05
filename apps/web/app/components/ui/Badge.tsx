@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useSiteLanguage } from "../../features/i18n/SiteLanguage";
 
 type Tone = "selected" | "accent" | "amber" | "hot" | "ok" | "neutral";
 
@@ -23,14 +24,18 @@ export function Badge({ tone = "neutral", dot = false, children, className = "",
 
 /** The "精选" mark on a report. */
 export function SelectedBadge({ english = false }: { english?: boolean } = {}) {
+  const siteEnglish = useSiteLanguage() === "en";
+  const en = english || siteEnglish;
   return (
     <Badge tone="selected" dot>
-      {english ? "Selected" : "精选"}
+      {en ? "Selected" : "精选"}
     </Badge>
   );
 }
 
 /** A selected report whose fact is shown by another report (the one holding its selected seat). */
 export function SameEventBadge({ english = false }: { english?: boolean } = {}) {
-  return <Badge title={english ? "Another selected report represents this story" : "同一新闻已有精选代表"}>{english ? "Same story" : "同新闻"}</Badge>;
+  const siteEnglish = useSiteLanguage() === "en";
+  const en = english || siteEnglish;
+  return <Badge title={en ? "Another selected report represents this story" : "同一新闻已有精选代表"}>{en ? "Same story" : "同新闻"}</Badge>;
 }

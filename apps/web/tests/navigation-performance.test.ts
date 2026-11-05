@@ -18,6 +18,21 @@ import { before, after, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { chromium, webkit, expect, type Browser } from "@playwright/test";
 import type { FeedItemSummary, SiteItemDetail, ReportDetail } from "@aihot/contracts/site";
+import { CATEGORY_LABELS } from "@aihot/contracts/taxonomy";
+
+const MODEL_CATEGORY = CATEGORY_LABELS['new-models'];
+const PRODUCT_CATEGORY = CATEGORY_LABELS.electrification;
+
+/** These navigation tests are not about consent; record the required choice before interacting. */
+async function dismissPrivacy(page: import('@playwright/test').Page) {
+  const reject = page.getByRole('button', { name: '拒绝非必要' });
+  try {
+    await reject.waitFor({ state: 'visible', timeout: 1000 });
+    await reject.click();
+  } catch {
+    // No notice in this context.
+  }
+}
 
 const at = '2026-10-04T08:00:00.000Z';
 const item: FeedItemSummary = {id:'navigation-fixture',title:'性能检查文章',summary:'固定摘要',reason:'固定推荐理由',source:{name:'Fixture'},publishedAt:at,timelineAt:at,category:'new-models',tags:[],score:80,selected:true,channel:'news',x:null};
@@ -99,7 +114,7 @@ for(const [engine,width] of [['chromium',1280],['webkit',390]] as const){
     const page=await context.newPage();
     try{
       const start=hits.length;
-      await page.goto(origin+'/');
+      await page.goto(origin+'/');await dismissPrivacy(page);
       await expect(page.getByRole('link',{name:'性能检查文章',exact:true})).toBeVisible();
       await page.getByRole('link',{name:'性能检查文章',exact:true}).click();
       await expect(page.getByText('固定正文',{exact:true})).toBeVisible();
@@ -110,10 +125,10 @@ for(const [engine,width] of [['chromium',1280],['webkit',390]] as const){
       assert.equal(hits.slice(start).filter(x=>x.startsWith('/api/site/timeline')).length,1,'returning to an SSR list needs no new data request');
       await context.setOffline(false);
       if(width===390)await page.getByRole('button',{name:/^筛选/}).click();
-      await page.getByRole('link',{name:'模型',exact:true}).click();
+      await page.getByRole('link',{name:MODEL_CATEGORY,exact:true}).click();
       await expect(page.getByRole('link',{name:'分类 new-models',exact:true})).toBeVisible();
       if(width===390)await page.getByRole('button',{name:/^筛选/}).click();
-      await page.getByRole('link',{name:'产品',exact:true}).click();
+      await page.getByRole('link',{name:PRODUCT_CATEGORY,exact:true}).click();
       await expect(page.getByRole('link',{name:'分类 electrification',exact:true})).toBeVisible();
       await context.setOffline(true);
       await page.goBack();
@@ -126,7 +141,7 @@ for(const [engine,width] of [['chromium',1280],['webkit',390]] as const){
 test('hover still fetches article data, touches that move do not, and failed prefetch does not replace the current page',async()=>{
   const context=await chrome.newContext();const page=await context.newPage();
   try{
-    await page.goto(origin+'/');
+    await page.goto(origin+'/');await dismissPrivacy(page);
     const link=page.getByRole('link',{name:'性能检查文章',exact:true});
     const start=hits.length;
     await link.dispatchEvent('touchstart');await link.dispatchEvent('touchmove');
@@ -139,7 +154,7 @@ test('hover still fetches article data, touches that move do not, and failed pre
     assert.equal(hits.slice(start).filter(x=>x.startsWith('/api/site/items/')).length,1,'navigation reuses its intent-prefetched response');
     const fresh=await chrome.newContext();const freshPage=await fresh.newPage();
     try{
-      await freshPage.goto(origin+'/');failing='/api/site/items/navigation-fixture';
+      await freshPage.goto(origin+'/');await dismissPrivacy(freshPage);failing='/api/site/items/navigation-fixture';
       const failed=freshPage.waitForResponse(r=>r.url().includes('/items/navigation-fixture.data')&&r.status()===503);
       await freshPage.getByRole('link',{name:'性能检查文章',exact:true}).hover();await failed;
       await expect(freshPage.getByRole('heading',{name:'精选',exact:true})).toBeVisible();
@@ -150,12 +165,12 @@ test('hover still fetches article data, touches that move do not, and failed pre
 test('SSR all-pages and report kinds return offline with their own content',async()=>{
   const context=await chrome.newContext();const page=await context.newPage();
   try{
-    await page.goto(origin+'/all');
+    await page.goto(origin+'/all');await dismissPrivacy(page);
     await page.locator('a[href="/all?page=2"]').first().click();
     await expect(page.getByRole('link',{name:'全部第 2 页',exact:true})).toBeVisible();
     await context.setOffline(true);await page.goBack();
     await expect(page.getByRole('link',{name:'全部第 1 页',exact:true})).toBeVisible({timeout:1500});
-    await context.setOffline(false);await page.goto(origin+'/daily');
+    await context.setOffline(false);await page.goto(origin+'/daily');await dismissPrivacy(page);
     await page.getByRole('link',{name:'周报',exact:true}).click();
     await expect(page.locator('#report-start')).toContainText('周报');
     await context.setOffline(true);await page.getByRole('link',{name:'日报',exact:true}).click();
@@ -171,17 +186,17 @@ test('intent on a selected link preserves visited data and the next revisit star
   await context.route('**/*.data*',route=>route.continue());
   page.on('request',request=>{if(request.url().includes('.data'))requests.push(request.url());});
   try{
-    await page.goto(origin+'/');
-    await page.getByRole('link',{name:'模型',exact:true}).click();
+    await page.goto(origin+'/');await dismissPrivacy(page);
+    await page.getByRole('link',{name:MODEL_CATEGORY,exact:true}).click();
     await expect(page.getByRole('link',{name:'分类 new-models',exact:true})).toBeVisible();
-    await page.getByRole('link',{name:'模型',exact:true}).focus();
+    await page.getByRole('link',{name:MODEL_CATEGORY,exact:true}).focus();
     await page.waitForTimeout(150);
-    await page.getByRole('link',{name:'产品',exact:true}).click();
+    await page.getByRole('link',{name:PRODUCT_CATEGORY,exact:true}).click();
     await expect(page.getByRole('link',{name:'分类 electrification',exact:true})).toBeVisible();
-    await page.getByRole('link',{name:'产品',exact:true}).focus();
+    await page.getByRole('link',{name:PRODUCT_CATEGORY,exact:true}).focus();
     await page.waitForTimeout(150);
     const before=requests.length;
-    await page.getByRole('link',{name:'模型',exact:true}).click();
+    await page.getByRole('link',{name:MODEL_CATEGORY,exact:true}).click();
     await expect(page.getByRole('link',{name:'分类 new-models',exact:true})).toBeVisible();
     assert.deepEqual(requests.slice(before),[],'neither prefetch nor navigation may evict and reload a still-valid visited page');
   }finally{await context.close();}
@@ -251,7 +266,7 @@ for(const [engine,width] of [['chromium',1280],['webkit',390]] as const){
     const scripts:string[]=[];page.on('request',r=>{if(r.url().includes('/assets/')&&r.url().includes('highlight-'))scripts.push(r.url());});
     await page.route('**/reader-image/*.svg',route=>route.fulfill({contentType:'image/svg+xml',body:`<svg xmlns="http://www.w3.org/2000/svg" width="${route.request().url().endsWith('/tiny.svg')?16:640}" height="360"><rect width="640" height="360" fill="red"/></svg>`}));
     try{
-      await page.goto(origin+'/items/reader-fixture');
+      await page.goto(origin+'/items/reader-fixture');await dismissPrivacy(page);
       await expect(page.getByRole('heading',{name:'阅读增强检查',exact:true})).toBeVisible();
       await expect(page.locator('.code-block-copy')).toHaveCount(2);
       assert.deepEqual(scripts,[],'reading the introduction must not download the offscreen highlighter');
@@ -292,9 +307,9 @@ for(const [engine,width] of [['chromium',1280],['webkit',390]] as const){
     });
     const page=await context.newPage();
     try{
-      await page.goto(origin+'/?tag=long-reading');
+      await page.goto(origin+'/?tag=long-reading');await dismissPrivacy(page);
       await expect(page.locator('[data-card-key]')).toHaveCount(180);
-      await page.getByRole('button',{name:'收起10月4日',exact:true}).click();
+      await page.getByRole('button',{name:/收起\s*10月4日/}).click();
       await expect(page.locator('[data-card-key]')).toHaveCount(120);
       await page.getByRole('link',{name:'长列表文章 160',exact:true}).scrollIntoViewIfNeeded();
       const before=await page.evaluate(()=>{
@@ -309,7 +324,7 @@ for(const [engine,width] of [['chromium',1280],['webkit',390]] as const){
       await expect.poll(()=>page.locator(`[data-card-key="${before.key}"]`).evaluate((e,top)=>Math.abs(e.getBoundingClientRect().top-top),before.top)).toBeLessThan(2);
       const reads=await page.evaluate(()=>(window as unknown as {cardReads:number}).cardReads);
       assert.ok(reads<=40,`returning deep in a list must not measure every earlier card (${reads} reads)`);
-      await expect(page.getByRole('button',{name:'展开10月4日',exact:true})).toBeVisible();
+      await expect(page.getByRole('button',{name:/展开\s*10月4日/})).toBeVisible();
     }finally{await context.close();}
   });
 }
