@@ -125,7 +125,7 @@ const ENGINE_API_PATHS: RegExp[] = [
   /^\/feed(\.xml|\/.*)?$/,
   /^\/(rss|rss\.xml|atom\.xml)$/,
   /^\/openapi-v1\.json$/,
-  /^\/(llms\.txt|robots\.txt|sitemap\.xml|manifest\.webmanifest)$/,
+  /^\/(llms\.txt|robots\.txt|ads\.txt|sitemap\.xml|manifest\.webmanifest)$/,
   /^\/sitemaps\//,
   /^\/\.well-known\//,
   /^\/(favicon\.ico|icon\.png|icon-192\.png|apple-icon\.png|logo\.svg)$/,

@@ -50,3 +50,9 @@ test("agents read Markdown answers under /api/v1/agent", async () => {
   for (const url of ["/api/v1/agent/latest?days=3", "/api/v1/agent/latest?limit=31", "/api/v1/agent/search?q=x", "/api/v1/agent/daily/2026-02-30"]) assert.equal((await get(url)).statusCode, 400, url);
   for (const url of ["/api/v1/agent/stories/no-such-story", "/api/v1/agent/daily/2099-01-01"]) assert.equal((await get(url)).statusCode, 404, url);
 });
+test("ads.txt is served at the site root for advertising authorization", async () => {
+  const response = await app.inject({ method: "GET", url: "/ads.txt" });
+  assert.equal(response.statusCode, 200);
+  assert.match(String(response.headers["content-type"]), /^text\/plain/);
+  assert.match(response.body, /^google\.com, pub-5616862120936623, DIRECT,/m);
+});
