@@ -1,6 +1,6 @@
 // Requeue named articles that are still waiting for their selected-news identity check.
 // Usage: node --env-file=.env scripts/requeue-stuck-grouping.ts <article-id> [...]
-import { closeDb } from "@aihot/backend/db";
+import { closeDb, sql } from "@aihot/backend/db";
 import { requestRegroup } from "@aihot/backend/events/corrections";
 import { waitingSelectedNews } from "@aihot/backend/operations/grouping";
 
@@ -23,6 +23,16 @@ if (ids.length === 0) {
       console.log(`${id}: recovery=${item.recovery}${item.receiptId ? ` receipt=#${item.receiptId}` : ""}${item.error ? ` error=${item.error.slice(0, 180)}` : ""}`);
       if (item.recovery === "receipt") {
         console.log(`${id}: 跳过，付费请求结果仍未确认；请先在后台核对或释放回执`);
+        skipped += 1;
+        continue;
+      }
+      const [active] = await sql<{ id: string; state: string; age_seconds: number }[]>`
+        SELECT id, state, extract(epoch FROM (now() - created_on))::int AS age_seconds
+        FROM pgboss.job
+        WHERE name = 'events.group' AND data->>'articleId' = ${id} AND state IN ('created', 'retry', 'active')
+        ORDER BY created_on DESC LIMIT 1`;
+      if (active) {
+        console.log(`${id}: 跳过，已有 ${active.state} 任务 ${active.id}，已等待 ${active.age_seconds} 秒`);
         skipped += 1;
         continue;
       }
