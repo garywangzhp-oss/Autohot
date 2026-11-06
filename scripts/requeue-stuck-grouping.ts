@@ -20,7 +20,7 @@ if (ids.length === 0) {
         console.log(`${id}: 已不在等待列表（可能已完成或不再公开）`);
         continue;
       }
-      console.log(`${id}: recovery=${item.recovery}${item.error ? ` error=${item.error.slice(0, 180)}` : ""}`);
+      console.log(`${id}: recovery=${item.recovery}${item.receiptId ? ` receipt=#${item.receiptId}` : ""}${item.error ? ` error=${item.error.slice(0, 180)}` : ""}`);
       if (item.recovery === "receipt") {
         console.log(`${id}: 跳过，付费请求结果仍未确认；请先在后台核对或释放回执`);
         skipped += 1;
