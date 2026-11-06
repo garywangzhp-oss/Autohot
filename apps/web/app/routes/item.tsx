@@ -58,20 +58,23 @@ export function meta({ loaderData, location }: Route.MetaArgs) {
   if (!loaderData) return [{ title: titled(en ? "Story not found" : "内容不存在") }, { name: "robots", content: "noindex" }];
   const { item } = loaderData;
   if (!item) return [{ title: titled(loaderData.preview.title) }];
+  const path = en ? `/items/${item.id}?lang=en` : `/items/${item.id}`;
+  const englishReady = item.bodyLanguage === "en" || item.hasEnglishTranslation;
   return pageMeta({
     title: en ? `${item.title} · AutoHot` : item.title,
     rawTitle: en,
     description: item.summary ?? undefined,
-    path: en ? `/items/${item.id}?lang=en` : `/items/${item.id}`,
+    path,
     image: `/og/items/${item.id}.png`,
     type: "article",
-    noindex: !item.indexable,
+    noindex: !item.indexable || (en && !englishReady),
+    hreflang: englishReady,
     jsonLd: [
-      articleLd({ path: en ? `/items/${item.id}?lang=en` : `/items/${item.id}`, headline: item.title, description: item.summary, publishedAt: item.publishedAt, basedOn: item.links.original }),
+      articleLd({ path, headline: item.title, description: item.summary, publishedAt: item.publishedAt, basedOn: item.links.original }),
       breadcrumbLd([
         { name: en ? "AutoHot" : SITE.name, path: "/" },
         { name: item.selected ? (en ? "Featured" : "精选") : (en ? "All stories" : "全部动态"), path: item.selected ? (en ? "/?lang=en" : "/") : (en ? "/all?lang=en" : "/all") },
-        { name: item.title, path: `/items/${item.id}` },
+        { name: item.title, path },
       ]),
     ],
   });

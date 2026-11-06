@@ -27,6 +27,8 @@ export interface PageMetaInput {
   image?: string | null;
   noindex?: boolean;
   nofollow?: boolean;
+  /** Emit reciprocal zh-CN/en/x-default alternates. Defaults to true; noindex pages never emit them. */
+  hreflang?: boolean;
   type?: "website" | "article";
   jsonLd?: Record<string, unknown> | Array<Record<string, unknown>>;
 }
@@ -72,10 +74,22 @@ export function pageMeta(input: PageMetaInput): MetaDescriptor[] {
   const description = input.description ?? (en ? SITE_EN.description : SITE_DESCRIPTION);
   const url = `${base}${input.path}`;
   const image = input.image ? (input.image.startsWith("http") ? input.image : `${base}${input.image}`) : `${base}/og/site.png`;
+  const current = new URL(input.path, base);
+  const english = new URL(current);
+  english.searchParams.set("lang", "en");
+  const chinese = new URL(current);
+  chinese.searchParams.delete("lang");
+  const alternates = !input.noindex && input.hreflang !== false ? [
+    { tagName: "link", rel: "alternate", hrefLang: "zh-CN", href: chinese.toString() },
+    { tagName: "link", rel: "alternate", hrefLang: "en", href: english.toString() },
+    { tagName: "link", rel: "alternate", hrefLang: "x-default", href: chinese.toString() },
+    { property: "og:locale:alternate", content: en ? "zh_CN" : "en_US" },
+  ] satisfies MetaDescriptor[] : [];
   const tags: MetaDescriptor[] = [
     { title },
     { name: "description", content: description },
     { tagName: "link", rel: "canonical", href: url },
+    ...alternates,
     { property: "og:site_name", content: en ? SITE_EN.name : SITE.name },
     { property: "og:type", content: input.type ?? "website" },
     { property: "og:title", content: input.title ?? HOME_TITLE },

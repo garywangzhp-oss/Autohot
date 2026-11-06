@@ -29,16 +29,17 @@ export async function loader({ request }: Route.LoaderArgs) {
 export function meta({ loaderData, location }: Route.MetaArgs) {
   const kind = loaderData?.kind ?? "daily";
   const en = new URLSearchParams(location.search).get("lang") === "en";
+  const path = en ? `${location.pathname}?lang=en` : location.pathname;
   const description = en ? `The latest ${kindLabel(kind, "en").toLowerCase()} automotive briefing.` : `${REPORTS.descriptions[kind]}。`;
   const report = loaderData?.report;
   return [...pageMeta({
     title: en ? `${kindLabel(kind, "en")} · AutoHot` : withSubject(KIND_LABEL[kind]),
     rawTitle: en,
     description,
-    path: en ? `${location.pathname}?lang=en` : location.pathname,
+    path,
     image: `/og/pages/${kind}.png`,
     // The latest issue, described at this page's own address (its canonical).
-    jsonLd: report ? reportLd(report, location.pathname, report.lead?.leadParagraph ?? description) : undefined,
+    jsonLd: report ? reportLd(report, path, report.lead?.leadParagraph ?? description) : undefined,
   }), feedLink(kind, en ? "en" : "zh")];
 }
 
