@@ -6,9 +6,9 @@
 // and the neighbours; line parts stories, columns and list rows. Nothing is set in solid ink. Stories
 // sit in rows of two whose rules run across the page, each story as tall as its neighbour.
 import { IntentLink } from "../../components/ui/IntentLink";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { LocalizedLink as Link, useSiteLanguage } from "../i18n/SiteLanguage.tsx";
-import type { ReportCitation, ReportDetail, ReportNavigationEntry } from "@aihot/contracts/site";
+import type { CoverImage, ReportCitation, ReportDetail, ReportNavigationEntry } from "@aihot/contracts/site";
 import { REPORTS, SITE, SITE_EN, subjectAfter, withSubject } from "@aihot/site";
 import { Badge } from "../../components/ui/Badge";
 import { IconArrowLeft, IconArrowRight, IconArrowUpRight } from "../../components/icons";
@@ -245,7 +245,7 @@ function pagesOf(report: ReportDetail, leadStory: ReportCitation | null): Page[]
  * The lead's picture; landscape pictures are cropped to between 16:10 and 2:1. A picture that is not
  * the lead's own (a weekly or monthly's, from its first highlight) is captioned with its story.
  */
-function LeadPicture({ cover, onError, priority = false, className = "" }: { cover: NonNullable<ReportDetail["cover"]>; onError: () => void; priority?: boolean; className?: string }) {
+function LeadPicture({ cover, caption, onError, priority = false, className = "" }: { cover: CoverImage; caption?: string | null; onError: () => void; priority?: boolean; className?: string }) {
   const en = useSiteLanguage() === "en";
   const ratio = cover.width && cover.height ? cover.width / cover.height : 16 / 9;
   const shown = ratio >= 1.25 ? Math.min(2, Math.max(1.6, ratio)) : Math.max(0.8, ratio);
@@ -255,9 +255,12 @@ function LeadPicture({ cover, onError, priority = false, className = "" }: { cov
         <img src={cover.url} srcSet={cover.srcSet}
           sizes={priority ? "(min-width: 1700px) 780px, (min-width: 1580px) calc(100vw - 920px), (min-width: 1420px) calc(100vw - 880px), (min-width: 1024px) calc(100vw - 540px), (min-width: 640px) 608px, calc(100vw - 32px)" : "auto, (min-width: 1180px) 300px, (min-width: 640px) 608px, calc(100vw - 32px)"}
           width={cover.width ?? undefined} height={cover.height ?? undefined}
-          alt="" loading={priority ? "eager" : "lazy"} fetchPriority={priority ? "high" : "auto"} decoding="async" onError={onError} className="size-full object-cover" />
+          alt="" loading={priority ? "eager" : "lazy"} fetchPriority={priority ? "high" : "auto"} decoding="async"
+          onError={onError}
+          onLoad={(event) => { if (event.currentTarget.naturalWidth < 160 || event.currentTarget.naturalHeight < 90) onError(); }}
+          className="size-full object-cover" />
       </div>
-      {cover.caption && <figcaption className="mt-2.5 line-clamp-2 text-[12.5px] leading-[1.6] text-ink-4">{en ? "Photo" : "图"} · {cover.caption}</figcaption>}
+      {caption && <figcaption className="mt-2.5 line-clamp-2 text-[12.5px] leading-[1.6] text-ink-4">{en ? "Photo" : "图"} · {caption}</figcaption>}
     </figure>
   );
 }
@@ -283,9 +286,12 @@ function FrontPage({ report, pages, leadStory, count }: { report: ReportDetail; 
   const daily = report.kind === "daily";
   // A weekly or monthly leading with an event: the event's own summary; its overview stands above (Overview).
   const byEvent = daily || !!leadStory;
-  // A picture that fails to load is dropped, and the lead is set as if it had none.
-  const [broken, setBroken] = useState<string | null>(null);
-  const cover = report.cover && report.cover.url !== broken ? report.cover : null;
+  // Same-story fallbacks keep a dead source CDN from erasing the front-page picture entirely.
+  const covers: CoverImage[] = report.cover ? [report.cover, ...(report.cover.fallbacks ?? [])] : [];
+  const [coverIndex, setCoverIndex] = useState(0);
+  useEffect(() => setCoverIndex(0), [report.key, report.cover?.url]);
+  const cover = covers[coverIndex] ?? null;
+  const advanceCover = () => setCoverIndex((current) => current + 1);
   // A landscape picture opens the lead above its headline; a squarer one sits beside the paragraph.
   const wide = !cover?.width || !cover.height || cover.width / cover.height >= 1.25;
   const title = report.lead?.title ?? leadStory?.title ?? headline(report.kind, report.key, count, lang);
@@ -300,7 +306,7 @@ function FrontPage({ report, pages, leadStory, count }: { report: ReportDetail; 
       {/* On a phone the headline comes before a landscape picture, so the first screen carries the news. */}
       <div id={leadStory ? (anchorOf(leadStory) ?? undefined) : undefined} className="flex min-w-0 scroll-mt-[calc(var(--bar-h)+1.5rem)] flex-col py-7 @[880px]:border-r @[880px]:border-line @[880px]:py-10 @[880px]:pr-10">
         <Kicker>{en ? (byEvent ? "TOP STORY" : "ISSUE OVERVIEW") : (byEvent ? "头条" : "本期导读")}</Kicker>
-        {cover && wide && <LeadPicture cover={cover} onError={() => setBroken(cover.url)} priority className="order-2 mt-5 @[560px]:order-1" />}
+        {cover && wide && <LeadPicture cover={cover} caption={coverIndex === 0 ? report.cover?.caption : null} onError={advanceCover} priority className="order-2 mt-5 @[560px]:order-1" />}
         <h2 className="order-1 mt-4 text-[32px] font-black leading-[1.28] tracking-[-0.03em] text-ink [text-wrap:balance] @[520px]:text-[40px] @[560px]:order-2 @[1040px]:text-[48px] @[1040px]:leading-[1.22]">
           {leadStory?.itemId ? (
             <IntentLink viewTransition to={`/items/${leadStory.itemId}`} className="transition-colors hover:text-accent">
@@ -313,7 +319,7 @@ function FrontPage({ report, pages, leadStory, count }: { report: ReportDetail; 
         {dek && (
           <div className={cover && !wide ? "order-3 mt-6 grid gap-6 @[640px]:grid-cols-[minmax(0,1fr)_minmax(0,38%)] @[880px]:mt-7" : "order-3"}>
             <p className={`text-[16.5px] leading-[1.9] text-ink-2 @[880px]:text-[17.5px] ${cover && !wide ? "" : "mt-6 @[560px]:text-justify @[880px]:mt-7"}`}>{dek}</p>
-            {cover && !wide && <LeadPicture cover={cover} onError={() => setBroken(cover.url)} />}
+            {cover && !wide && <LeadPicture cover={cover} caption={coverIndex === 0 ? report.cover?.caption : null} onError={advanceCover} />}
           </div>
         )}
         {leadStory && (

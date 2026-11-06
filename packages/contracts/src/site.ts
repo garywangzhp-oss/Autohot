@@ -185,6 +185,15 @@ export interface HotParticipant {
   iconSrcSet?: string;
 }
 
+/** A signed cover image. Fallbacks are tried in order when the source CDN or proxy rejects one. */
+export interface CoverImage {
+  url: string;
+  srcSet?: string;
+  width: number | null;
+  height: number | null;
+  fallbacks?: CoverImage[];
+}
+
 
 export interface HotEntryView {
   rank: number;
@@ -204,7 +213,7 @@ export interface HotEntryView {
   /** The latest development, one line. */
   latest: string | null;
   /** A picture from the story's public reports (the representative first), for the leading cards. */
-  cover: { url: string; srcSet?: string; width: number | null; height: number | null } | null;
+  cover: CoverImage | null;
 }
 
 export interface HotResponse {
@@ -313,7 +322,7 @@ export interface ReportDetail {
    * The front page's picture: from the lead item (a daily's lead, a weekly or monthly's first highlight),
    * else from another public report of that event. Captioned with the story when it is not the lead's own.
    */
-  cover: { url: string; srcSet?: string; width: number | null; height: number | null; caption: string | null } | null;
+  cover: (CoverImage & { caption: string | null }) | null;
   metrics: Record<string, number>;
   readingMinutes: number;
   prev: string | null;

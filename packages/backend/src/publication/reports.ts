@@ -9,6 +9,7 @@ import { isoWeekRange, monthRange } from "@aihot/contracts/time";
 import { dailyUrl, itemUrl, periodUrl, siteUrl } from "./links.ts";
 import { publicSourceName } from "./rules.ts";
 import { listedCondition } from "./scope.ts";
+import { isArticleCoverCandidate } from "../lib/image-url.ts";
 
 export type { ReportKind };
 
@@ -295,28 +296,41 @@ export function leadItemOf(leadTitle: string | undefined, highlights: ReportCita
   return best && best.share >= 0.5 ? best.c : undefined;
 }
 
+interface CoverCandidate {
+  url: string;
+  width: number | null;
+  height: number | null;
+}
+
 /**
- * A picture for the front page's lead item: its own first sizeable image, else one from another public
- * report of the same event (first-hand first). Summary-only items lend their picture too, captioned
- * with the story when the picture is another report's.
+ * Pictures for the front page's lead item: its own sizeable images first, then pictures from another
+ * public report of the same event (first-hand first). Summary-only items lend their picture too. The
+ * caller keeps several fallbacks because a source CDN can redirect to a host that is unreachable.
  */
-async function leadCover(itemId: string): Promise<{ url: string; srcSet?: string; width: number | null; height: number | null } | null> {
-  const [row] = await sql<{ m: { url: string; width?: number; height?: number } }[]>`
-    SELECT img.m
+async function leadCovers(itemId: string): Promise<CoverCandidate[]> {
+  const rows = await sql<{ article_id: string; m: { url: string; width?: number; height?: number } }[]>`
+    SELECT p.article_id, img.m
     FROM publications p JOIN articles a ON a.id = p.article_id
     CROSS JOIN LATERAL (
-      SELECT m FROM jsonb_array_elements(coalesce(a.media, '[]'::jsonb)) m
-      WHERE m->>'kind' = 'image' AND coalesce((m->>'width')::numeric, 800) >= 480 LIMIT 1
+      SELECT m, ord FROM jsonb_array_elements(coalesce(a.media, '[]'::jsonb)) WITH ORDINALITY AS media(m, ord)
+      WHERE m->>'kind' = 'image' AND coalesce((m->>'width')::numeric, 800) >= 480
     ) img
     WHERE (p.article_id = ${itemId} OR p.story_id = (SELECT story_id FROM publications WHERE article_id = ${itemId}))
       AND ${listedCondition(new Date())}
-    ORDER BY (p.article_id = ${itemId}) DESC, p.first_party DESC, coalesce(p.score, 0) DESC, p.article_id
-    LIMIT 1`;
-  if (!row) return null;
-  const url = proxiedImage(row.m.url, "full");
-  if (!url) return null;
-  const srcSet = proxiedImageSet(row.m.url, "hero");
-  return { url, ...(srcSet ? { srcSet } : {}), width: typeof row.m.width === "number" ? row.m.width : null, height: typeof row.m.height === "number" ? row.m.height : null };
+    ORDER BY (p.article_id = ${itemId}) DESC, p.first_party DESC, p.selected DESC, coalesce(p.score, 0) DESC,
+      p.article_id, img.ord
+    LIMIT 32`;
+  const out: CoverCandidate[] = [];
+  const seen = new Set<string>();
+  for (const row of rows) {
+    const width = typeof row.m.width === "number" ? row.m.width : null;
+    const height = typeof row.m.height === "number" ? row.m.height : null;
+    if (!isArticleCoverCandidate(row.m.url, width, height) || seen.has(row.m.url)) continue;
+    seen.add(row.m.url);
+    out.push({ url: row.m.url, width, height });
+    if (out.length >= 4) break;
+  }
+  return out;
 }
 
 function readingMinutes(text: string): number {
@@ -366,8 +380,14 @@ export async function loadReport(kind: ReportKind, key: string, lang: SiteLangua
   const leadItem = hasCitedLead
     ? all.find((x) => x.itemId === named?.itemId)
     : kind === "daily" ? leadItemOf(c.lead?.title, highlights, all) : (highlights.find((x) => x.available) ?? all.find((x) => x.available));
-  const [{ prev, next }, picture] = await Promise.all([neighbors(kind, key), leadItem?.itemId && leadItem.available ? leadCover(leadItem.itemId) : null]);
-  const cover = picture && leadItem ? { ...picture, caption: kind === "daily" || c.leadItemId ? null : leadItem.title } : null;
+  const [{ prev, next }, pictures] = await Promise.all([neighbors(kind, key), leadItem?.itemId && leadItem.available ? leadCovers(leadItem.itemId) : []]);
+  const coverOptions = pictures.flatMap((picture) => {
+    const url = proxiedImage(picture.url, "full");
+    return url ? [{ url, srcSet: proxiedImageSet(picture.url, "hero") ?? undefined, width: picture.width, height: picture.height }] : [];
+  });
+  const cover = coverOptions[0] && leadItem
+    ? { ...coverOptions[0], caption: kind === "daily" || c.leadItemId ? null : leadItem.title, fallbacks: coverOptions.slice(1) }
+    : null;
   const headline = kind === "daily" ? null : periodicHeadline(c);
   const title = kind === "daily" ? (lang === "en" ? `AutoHot Daily · ${key}` : `${withSubject("日报")} · ${key}`)
     : String((hasCitedLead && c.title === headline ? named?.title : c.title) ?? (lang === "en" ? `AutoHot ${kind === "weekly" ? "Weekly" : "Monthly"} · ${key}` : (kind === "weekly" ? `${SITE.name} 周报 · ${key}` : `${SITE.name} 月报 · ${key}`)));

@@ -1,6 +1,7 @@
 import { useLoaderData } from "react-router";
+import { useEffect, useState } from "react";
 import { IntentLink } from "../components/ui/IntentLink";
-import type { HotEntryView, HotResponse } from "@aihot/contracts/site";
+import type { CoverImage, HotEntryView, HotResponse } from "@aihot/contracts/site";
 import { subjectAfter, withSubject } from "@aihot/site";
 import { edgeTtl, loadOr404, pageExpiresAt, requestLanguage, withLanguage } from "../lib/api.server";
 import { cachedLoader } from "../lib/page-reuse";
@@ -115,6 +116,36 @@ function HeatPanel({ e }: { e: HotEntryView }) {
   );
 }
 
+/** The lead picture retries same-story fallbacks; a decorative or broken image falls back to the heat chart. */
+function LeadVisual({ e, showHeat }: { e: HotEntryView; showHeat: boolean }) {
+  const covers: CoverImage[] = e.cover ? [e.cover, ...(e.cover.fallbacks ?? [])] : [];
+  const [index, setIndex] = useState(0);
+  useEffect(() => setIndex(0), [e.cover?.url]);
+  const cover = covers[index];
+  if (!cover) return showHeat ? <HeatPanel e={e} /> : null;
+  const reject = () => setIndex((current) => current + 1);
+  return (
+    <div className="order-first overflow-hidden well rounded-panel xl:order-none">
+      <img
+        src={cover.url}
+        srcSet={cover.srcSet}
+        sizes="(min-width: 1280px) calc(28vw - 96px), (min-width: 1024px) calc(58vw - 180px), (min-width: 640px) 568px, calc(100vw - 74px)"
+        width={cover.width ?? undefined}
+        height={cover.height ?? undefined}
+        alt=""
+        loading="eager"
+        fetchPriority="high"
+        decoding="async"
+        onError={reject}
+        onLoad={(event) => {
+          if (event.currentTarget.naturalWidth < 160 || event.currentTarget.naturalHeight < 90) reject();
+        }}
+        className="aspect-[16/9] size-full object-cover transition-transform duration-500 group-hover:scale-[1.02] xl:aspect-[16/10]"
+      />
+    </div>
+  );
+}
+
 /** No. 1: the event people are talking about most, with its picture, digest, latest turn and day of heat. */
 function Lead({ e }: { e: HotEntryView }) {
   const en = useSiteLanguage() === "en";
@@ -133,13 +164,7 @@ function Lead({ e }: { e: HotEntryView }) {
           </h2>
           {e.summary && <p className="mt-3 line-clamp-3 text-[14px] leading-[1.75] text-ink-3">{e.summary}</p>}
         </div>
-        {e.cover ? (
-          <div className="order-first overflow-hidden well rounded-panel xl:order-none">
-            <img src={e.cover.url} srcSet={e.cover.srcSet} sizes="(min-width: 1280px) calc(28vw - 96px), (min-width: 1024px) calc(58vw - 180px), (min-width: 640px) 568px, calc(100vw - 74px)" width={e.cover.width ?? undefined} height={e.cover.height ?? undefined} alt="" loading="eager" fetchPriority="high" decoding="async" className="aspect-[16/9] size-full object-cover transition-transform duration-500 group-hover:scale-[1.02] xl:aspect-[16/10]" />
-          </div>
-        ) : (
-          panel && <HeatPanel e={e} />
-        )}
+        {(e.cover || panel) && <LeadVisual e={e} showHeat={panel || e.spark.filter((v) => v !== null).length >= 3} />}
       </div>
       {/* Side by side while the card is wide enough; on a narrow card the day of heat and the index
           move under the voices, to the right, instead of squeezing them into a column. */}

@@ -9,6 +9,7 @@ import { behindSources, currentSignals, heatSeries, sourceClocks, type HotRankin
 import { pickRepresentative, REPRESENTATIVE_COLUMNS, type RepresentativeIdentity } from "./representative.ts";
 import { compositeCondition, evidenceCondition, listedCondition, storyReportCondition } from "./scope.ts";
 import { publicSourceName } from "./rules.ts";
+import { isArticleCoverCandidate } from "../lib/image-url.ts";
 import { latestHotRanking, rankingExtras } from "./hot.ts";
 import { itemCopyByIds } from "./items.ts";
 import { storyTexts } from "./story-text.ts";
@@ -223,20 +224,41 @@ const hotCovers = cachedByKey((ranking: HotRanking) => String(ranking.id), query
  * Summary-only items lend their picture too: a card's picture credits the source and links to it, which
  * is not the same as republishing its words.
  */
-async function queryHotCovers({ entries }: HotRanking) {
+interface CoverCandidate {
+  url: string;
+  width: number | null;
+  height: number | null;
+}
+
+async function queryHotCovers({ entries }: HotRanking): Promise<Map<number, CoverCandidate[]>> {
   const at = new Date();
   const ids = entries.map((e) => e.storyId);
   const reps = entries.map((e) => e.representativeItemId).filter((id): id is string => !!id);
-  const rows = await sql<{ story_id: number; m: { url: string; width?: number; height?: number } }[]>`
-    SELECT DISTINCT ON (p.story_id) p.story_id, img.m
+  const rows = await sql<{ story_id: number; article_id: string; m: { url: string; width?: number; height?: number } }[]>`
+    SELECT p.story_id, p.article_id, img.m
     FROM publications p JOIN articles a ON a.id = p.article_id
     CROSS JOIN LATERAL (
-      SELECT m FROM jsonb_array_elements(coalesce(a.media, '[]'::jsonb)) m
-      WHERE m->>'kind' = 'image' AND coalesce((m->>'width')::numeric, 800) >= 480 LIMIT 1
+      SELECT m, ord FROM jsonb_array_elements(coalesce(a.media, '[]'::jsonb)) WITH ORDINALITY AS media(m, ord)
+      WHERE m->>'kind' = 'image' AND coalesce((m->>'width')::numeric, 800) >= 480
     ) img
     WHERE p.story_id = ANY(${ids}::bigint[]) AND ${listedCondition(at)}
-    ORDER BY p.story_id, (p.article_id::text = ANY(${reps}::text[])) DESC, p.first_party DESC, p.selected DESC, coalesce(p.score, 0) DESC, p.article_id`;
-  const covers = new Map(rows.map((c) => [Number(c.story_id), { url: c.m.url, width: typeof c.m.width === "number" ? c.m.width : null, height: typeof c.m.height === "number" ? c.m.height : null }]));
+    ORDER BY p.story_id, (p.article_id::text = ANY(${reps}::text[])) DESC, p.first_party DESC, p.selected DESC,
+      coalesce(p.score, 0) DESC, p.article_id, img.ord`;
+  const covers = new Map<number, CoverCandidate[]>();
+  const seen = new Map<number, Set<string>>();
+  for (const row of rows) {
+    const width = typeof row.m.width === "number" ? row.m.width : null;
+    const height = typeof row.m.height === "number" ? row.m.height : null;
+    if (!isArticleCoverCandidate(row.m.url, width, height)) continue;
+    const storyId = Number(row.story_id);
+    const urls = seen.get(storyId) ?? new Set<string>();
+    if (urls.has(row.m.url)) continue;
+    urls.add(row.m.url);
+    seen.set(storyId, urls);
+    const list = covers.get(storyId) ?? [];
+    list.push({ url: row.m.url, width, height });
+    covers.set(storyId, list);
+  }
   return covers;
 }
 
@@ -257,8 +279,12 @@ export async function loadHot(lang: SiteLanguage = "zh"): Promise<HotResponse> {
     computedAt: ranking.computedAt,
     windowHours: 48,
     entries: ranking.entries.map((e) => {
-      const picture = covers.get(e.storyId);
-      const coverUrl = picture ? proxiedImage(picture.url, "full") : null;
+      const pictures = covers.get(e.storyId) ?? [];
+      const coverOptions = pictures.flatMap((picture) => {
+        const url = proxiedImage(picture.url, "full");
+        return url ? [{ url, srcSet: proxiedImageSet(picture.url, "hero") ?? undefined, width: picture.width, height: picture.height }] : [];
+      }).slice(0, 4);
+      const picture = coverOptions[0];
       const text = extras.text(e);
       // The card clips its text to a few lines; complete public words belong to the event page.
       const summary = text.summary ? Array.from(text.summary) : null;
@@ -276,7 +302,7 @@ export async function loadHot(lang: SiteLanguage = "zh"): Promise<HotResponse> {
         spark: sparks.get(e.storyId) ?? [],
         summary: summary && summary.length > 480 ? summary.slice(0, 480).join('') + '…' : text.summary,
         latest: lang === "en" ? null : text.latest,
-        cover: picture && coverUrl ? { url: coverUrl, srcSet: proxiedImageSet(picture.url, "hero") ?? undefined, width: picture.width, height: picture.height } : null,
+        cover: picture ? { ...picture, fallbacks: coverOptions.slice(1) } : null,
       };
     }),
   };

@@ -1,6 +1,22 @@
 {
-  "latestVersion": "2026-11-05T22:55",
+  "latestVersion": "2026-11-06T12:00",
   "releases": [
+    {
+      "date": "2026-11-06",
+      "time": "12:00",
+      "kind": "优化",
+      "title": "修复热点榜和日报封面",
+      "kindEn": "Improvement",
+      "titleEn": "Fixed hot-ranking and daily cover images",
+      "body": [
+        "热点榜不再把网页里的下拉箭头、站点图标或小尺寸徽标当成文章封面。",
+        "日报头条和热点榜首图加载失败时，会自动尝试同一事件其他公开报道的图片，不再因为单个来源超时而整块消失。"
+      ],
+      "bodyEn": [
+        "The hot ranking no longer mistakes chevrons, site icons or tiny badges for article covers.",
+        "When a lead image fails to load, daily editions and the top hot story now try pictures from other public reports of the same event instead of dropping the image entirely."
+      ]
+    },
     {
       "date": "2026-11-05",
       "time": "22:55",
