@@ -76,6 +76,23 @@ export async function collectFindings(now = Date.now()): Promise<Finding[]> {
         since: waiting[0]!.since,
       });
     }
+    const recoveryJobs = await sql<{ job: string; status: string; error: string | null; started_at: Date }[]>`
+      SELECT DISTINCT ON (job) job, status, left(error, 300) AS error, started_at
+      FROM job_runs WHERE job IN ('events.repair', 'ops.recover') AND started_at > now() - interval '30 minutes'
+      ORDER BY job, started_at DESC`;
+    const brokenRecovery = recoveryJobs.filter((run) => run.status === "failed");
+    if (brokenRecovery.length) {
+      out.push({
+        key: "content.grouping-recovery",
+        level: "now",
+        title: "归组自动修复任务失败",
+        impact: "已经等待身份确认的精选不会在下一轮自动重新排队，可能继续积压",
+        heals: "会，每 5 分钟重试；连续失败说明恢复任务本身需要修复",
+        action: "转给 AI 检查 job_runs 和 worker 日志",
+        detail: brokenRecovery.map((run) => `${run.job}：${run.error ?? "未知错误"}`).join("；"),
+        since: brokenRecovery[0]!.started_at,
+      });
+    }
     const [p] = await sql<{ waiting: number; oldest: Date | null; failed: number }[]>`
       SELECT count(*) FILTER (WHERE processing_state = 'new' AND discovered_at < now() - interval '2 hours')::int AS waiting,
              min(discovered_at) FILTER (WHERE processing_state = 'new') AS oldest,

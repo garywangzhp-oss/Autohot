@@ -232,3 +232,19 @@ for (const change of ["revision", "regroup"] as const) test(`${change} withdraws
   const [current] = await sql`SELECT a.grouping_status,p.selected FROM articles a JOIN publications p ON p.article_id=a.id WHERE a.id=${id}`;
   assert.deepEqual({ ...current }, { grouping_status: "pending", selected: false });
 });
+
+test("a grouping job that has not advanced for half an hour is cancelled and rebuilt", async () => {
+  const id = await report("stale-active");
+  await sql`UPDATE articles SET grouping_status='pending', created_at=now()-interval '10 minutes' WHERE id=${id}`;
+  const oldId = await enqueue(QUEUES.group, { articleId: id }, { retryLimit: 0, singletonKey: `stale-${T}` });
+  await sql`UPDATE pgboss.job SET state='active', started_on=now()-interval '1 hour' WHERE id=${oldId}`;
+  try {
+    const swept = await sweepUngrouped();
+    assert.ok(swept.cancelled >= 1);
+    const jobs = await sql<{ id: string; state: string }[]>`SELECT id, state FROM pgboss.job WHERE name=${QUEUES.group} AND data->>'articleId'=${id} ORDER BY created_on`;
+    assert.equal(jobs.find((job) => job.id === oldId)?.state, "cancelled");
+    assert.ok(jobs.some((job) => job.id !== oldId && job.state === "created"), "a fresh repair job is queued");
+  } finally {
+    await sql`DELETE FROM pgboss.job WHERE name=${QUEUES.group} AND data->>'articleId'=${id}`;
+  }
+});

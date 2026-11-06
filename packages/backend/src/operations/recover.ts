@@ -56,5 +56,21 @@ export async function autoReleaseUnknownReceipts(now = Date.now()) {
 
 /** ops.recover, every 10 minutes. */
 export async function recoverStaleWork() {
-  return { receipts: await markStalePendingReceipts(), released: await autoReleaseUnknownReceipts(), jobs: await retryReleasedReceiptJobs(), grouping: await sweepUngrouped(), deliveries: await markStaleDeliveries() };
+  // One poisoned receipt, delivery or released-job record must not starve grouping repair. Every step
+  // settles before failures are reported together; the job still fails visibly so the next run retries.
+  const stale = await Promise.allSettled([markStalePendingReceipts(), autoReleaseUnknownReceipts(), markStaleDeliveries()]);
+  const resumed = await Promise.allSettled([retryReleasedReceiptJobs(), sweepUngrouped()]);
+  const steps = [["receipts", stale[0]], ["released", stale[1]], ["deliveries", stale[2]], ["jobs", resumed[0]], ["grouping", resumed[1]]] as const;
+  const failures = steps.filter(([, result]) => result.status === "rejected");
+  if (failures.length) {
+    throw new AggregateError(failures.map(([name, result]) => new Error(`${name}: ${String((result as PromiseRejectedResult).reason)}`)),
+      `stale-work recovery failed: ${failures.map(([name]) => name).join(", ")}`);
+  }
+  return {
+    receipts: (stale[0] as PromiseFulfilledResult<Awaited<ReturnType<typeof markStalePendingReceipts>>>).value,
+    released: (stale[1] as PromiseFulfilledResult<Awaited<ReturnType<typeof autoReleaseUnknownReceipts>>>).value,
+    jobs: (resumed[0] as PromiseFulfilledResult<Awaited<ReturnType<typeof retryReleasedReceiptJobs>>>).value,
+    grouping: (resumed[1] as PromiseFulfilledResult<Awaited<ReturnType<typeof sweepUngrouped>>>).value,
+    deliveries: (stale[2] as PromiseFulfilledResult<Awaited<ReturnType<typeof markStaleDeliveries>>>).value,
+  };
 }

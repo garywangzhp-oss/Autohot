@@ -3,7 +3,7 @@ import type { PgBoss } from "pg-boss";
 import { groupArticle } from "../events/group.ts";
 import { composeStoryDigest } from "../events/digest.ts";
 import { settleNonEditorial } from "./content.ts";
-import { enqueue, ensureQueue, QUEUES, work } from "./queue.ts";
+import { enqueue, ensureQueue, getBoss, QUEUES, work } from "./queue.ts";
 import { sql } from "../db.ts";
 
 export async function registerEventJobs(boss: PgBoss) {
@@ -20,10 +20,36 @@ export async function registerEventJobs(boss: PgBoss) {
   await work(boss, QUEUES.digest, { localConcurrency: 3, pollingIntervalSeconds: 5 }, ({ storyId }) => composeStoryDigest(storyId));
 }
 
-/** Missing jobs are repaired; a terminal job that left the article pending gets a bounded recovery. */
-export async function sweepUngrouped(): Promise<{ enqueued: number }> {
+const STALE_GROUP_JOB_MS = 30 * 60_000;
+
+/** Cancel a grouping job that stopped advancing for half an hour; its article is then repaired below. */
+async function cancelStaleGroupJobs(now = Date.now()): Promise<number> {
+  const rows = await sql<{ id: string }[]>`
+    SELECT j.id FROM pgboss.job j JOIN articles a ON a.id = j.data->>'articleId'
+    WHERE j.name = ${QUEUES.group} AND j.state IN ('created', 'retry', 'active')
+      AND coalesce(j.started_on, j.created_on) < ${new Date(now - STALE_GROUP_JOB_MS)}
+      AND a.grouping_status = 'pending' AND a.grouping_receipt_id IS NULL
+    ORDER BY coalesce(j.started_on, j.created_on) LIMIT 100`;
+  if (!rows.length) return 0;
+  const boss = await getBoss();
+  let cancelled = 0;
+  for (const row of rows) {
+    try {
+      await boss.cancel(QUEUES.group, row.id);
+      cancelled += 1;
+    } catch {
+      // Another worker may have completed it between the read and the cancel. The next sweep rechecks.
+    }
+  }
+  return cancelled;
+}
+
+/** Missing or stale jobs are repaired; a terminal job that left the article pending gets a bounded recovery. */
+export async function sweepUngrouped(): Promise<{ enqueued: number; cancelled: number }> {
   await ensureQueue(QUEUES.group);
-  return sql.begin(async (tx) => {
+  const cancelled = await cancelStaleGroupJobs();
+  const errors: Array<{ articleId: string; error: Error }> = [];
+  const result = await sql.begin(async (tx) => {
     // A failed job keeps its old singleton key forever. The last job's recoveryAttempt lets this
     // sweep create a fresh key, while the cap stops a permanently broken article from retrying forever.
     const rows = await tx<{ id: string; failed_job_id: string | null; recovery_attempt: number }[]>`
@@ -45,15 +71,27 @@ export async function sweepUngrouped(): Promise<{ enqueued: number }> {
     let enqueued = 0;
     const MAX_RECOVERY_ATTEMPTS = 2;
     for (const row of rows) {
-      if (row.failed_job_id && row.recovery_attempt >= MAX_RECOVERY_ATTEMPTS) {
-        await tx`UPDATE articles SET grouping_status = 'failed', grouping_error = 'grouping job failed after automatic recovery attempts'
-                 WHERE id = ${row.id} AND grouping_status = 'pending'`;
-        continue;
+      try {
+        const queued = await tx.savepoint(async (sp) => {
+          if (row.failed_job_id && row.recovery_attempt >= MAX_RECOVERY_ATTEMPTS) {
+            await sp`UPDATE articles SET grouping_status = 'failed', grouping_error = 'grouping job failed after automatic recovery attempts'
+                     WHERE id = ${row.id} AND grouping_status = 'pending'`;
+            return false;
+          }
+          const attempt = row.failed_job_id ? row.recovery_attempt + 1 : 0;
+          const key = row.failed_job_id ? `auto-repair:${row.id}:${attempt}` : row.id;
+          return !!(await enqueue(QUEUES.group, { articleId: row.id, ...(attempt ? { recoveryAttempt: attempt } : {}) },
+            { singletonKey: key, priority: -3 }, sp));
+        });
+        if (queued) enqueued += 1;
+      } catch (error) {
+        errors.push({ articleId: row.id, error: new Error(String(error)) });
       }
-      const attempt = row.failed_job_id ? row.recovery_attempt + 1 : 0;
-      const key = row.failed_job_id ? `auto-repair:${row.id}:${attempt}` : row.id;
-      if (await enqueue(QUEUES.group, { articleId: row.id, ...(attempt ? { recoveryAttempt: attempt } : {}) }, { singletonKey: key }, tx)) enqueued += 1;
     }
     return { enqueued };
   });
+  // Successful repairs are committed even when one article hits a malformed job or a transient pg-boss
+  // error; the next five-minute sweep retries only the failed ones.
+  if (errors.length) throw new AggregateError(errors.map((item) => item.error), `grouping repair failed for ${errors.map((item) => item.articleId).join(", ")}`);
+  return { ...result, cancelled };
 }

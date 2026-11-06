@@ -4,6 +4,7 @@ import type { PgBoss } from "pg-boss";
 import { ensureQueue, recordRun } from "@aihot/backend/jobs/queue";
 import { responder, serverModules, type Scheduled } from "@aihot/backend/modules";
 import { sweepUnprocessed } from "@aihot/backend/jobs/content";
+import { sweepUngrouped } from "@aihot/backend/jobs/events";
 import { translatePending } from "@aihot/backend/editorial/translate";
 import { localizePendingEnglish } from "@aihot/backend/editorial/localize-en";
 import { adaptIntervals, scheduleDueSources } from "@aihot/backend/sources/collect";
@@ -26,6 +27,9 @@ const collecting = process.env.COLLECT_ENABLED === "true";
 
 const ENGINE_SCHEDULES: Scheduled[] = [
   { name: "content.sweep", cron: "*/5 * * * *", run: sweepUnprocessed },
+  // A separate repair timer from ops.recover: a broken receipt or delivery recovery step cannot starve
+  // the selected-news identity queue. Already-running jobs are excluded inside the sweep.
+  { name: "events.repair", cron: "*/5 * * * *", missed: "once", run: sweepUngrouped },
   // Full-text translations of newly selected items (model calls; off with MODEL_CALLS_ENABLED=false).
   { name: "content.translate", cron: "*/5 * * * *", run: () => translatePending() },
   // English title/summary/reason and licensed full text, stored once for the bilingual site.
